@@ -1,4 +1,5 @@
 import { Container, Graphics, Text, TextStyle } from 'pixi.js'
+import { ViewerShield } from '../effects/ViewerShield'
 
 // Character archetype types from docs
 export type CharacterType = 'influencer' | 'boomerDad' | 'surferBro' | 'lifeguard' | 'marineBiologist' | 'springBreaker'
@@ -56,9 +57,11 @@ export class Player {
   private characterType: CharacterType
   private stats: typeof CHARACTER_STATS[CharacterType]
   private currentSpeed: number
-  private isInWater: boolean = false
+  public isInWater: boolean = false
   private abilityActive: boolean = false
   private abilityDuration: number = 0
+  private abilityCooldown: number = 0
+  private viewerShield: ViewerShield | null = null
   
   public x: number
   public y: number
@@ -239,6 +242,16 @@ export class Player {
       if (this.abilityDuration <= 0) {
         this.deactivateAbility()
       }
+    }
+    
+    // Update ability cooldown
+    if (this.abilityCooldown > 0) {
+      this.abilityCooldown -= delta
+    }
+    
+    // Update viewer shield
+    if (this.viewerShield) {
+      this.viewerShield.update(delta)
     }
   }
 

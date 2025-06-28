@@ -681,9 +681,31 @@ export function GameCanvas() {
       {/* Player Status - moved to middle right to avoid overlap */}
       <div className="absolute top-1/2 right-4 transform -translate-y-1/2 bg-black/50 text-white p-4 rounded-lg">
         <h3 className="text-sm font-bold mb-2">Player Status</h3>
-        <div className="text-xs space-y-1">
-          <div>Health: {playerRef.current?.health || 100}%</div>
-          <div>Stamina: {playerRef.current?.stamina || 100}%</div>
+        <div className="text-xs space-y-2">
+          <div>
+            <div className="mb-1">Health: {Math.round(playerRef.current?.health || 100)}%</div>
+            <div className="w-32 h-2 bg-gray-700 rounded">
+              <div 
+                className="h-full bg-red-500 rounded transition-all"
+                style={{ width: `${playerRef.current?.health || 100}%` }}
+              />
+            </div>
+          </div>
+          <div>
+            <div className="mb-1">Stamina: {Math.round(playerRef.current?.stamina || 100)}%</div>
+            <div className="w-32 h-2 bg-gray-700 rounded">
+              <div 
+                className={`h-full rounded transition-all ${
+                  (playerRef.current?.stamina || 100) > 50 ? 'bg-green-500' :
+                  (playerRef.current?.stamina || 100) > 25 ? 'bg-yellow-500' : 'bg-red-500'
+                }`}
+                style={{ width: `${playerRef.current?.stamina || 100}%` }}
+              />
+            </div>
+          </div>
+          {playerRef.current?.stamina < 25 && playerRef.current?.isInWater && (
+            <div className="text-red-400 text-xs animate-pulse">⚠️ Low stamina!</div>
+          )}
         </div>
       </div>
     </div>
