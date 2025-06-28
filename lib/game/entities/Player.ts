@@ -136,6 +136,23 @@ export class Player {
         this.sprite.circle(0, 0, 30 + i * 5)
         this.sprite.stroke({ width: 1, color: 0x4ECDC4, alpha: 0.2 - i * 0.05 })
       }
+      
+      // Drowning indicator at low stamina
+      if (this.stamina < 25) {
+        // Pulsing red circle
+        const pulseAlpha = 0.3 + Math.sin(Date.now() * 0.01) * 0.2
+        this.sprite.circle(0, 0, 22)
+        this.sprite.stroke({ width: 3, color: 0xFF0000, alpha: pulseAlpha })
+        
+        // Bubble effects when drowning
+        if (this.stamina === 0) {
+          for (let i = 0; i < 3; i++) {
+            const bubbleY = -30 - i * 10 - (Date.now() * 0.05) % 20
+            this.sprite.circle(-5 + i * 5, bubbleY, 3)
+            this.sprite.fill({ color: 0xFFFFFF, alpha: 0.6 })
+          }
+        }
+      }
     }
 
     // Show ability activation
@@ -157,17 +174,34 @@ export class Player {
     // Update speed based on terrain
     this.currentSpeed = this.isInWater ? this.stats.swimSpeed : this.stats.baseSpeed
     
-    // Update stamina (decreases when moving, recovers when still)
+    // Update stamina based on water/beach and movement
     const isMoving = Math.abs(inputX) > 0.1 || Math.abs(inputY) > 0.1
-    if (isMoving) {
-      this.stamina = Math.max(0, this.stamina - delta * 0.01)
+    
+    if (this.isInWater) {
+      // In water: stamina depletes
+      if (isMoving) {
+        this.stamina = Math.max(0, this.stamina - delta * 0.083) // 5 points/second at 60fps
+      } else {
+        this.stamina = Math.max(0, this.stamina - delta * 0.033) // 2 points/second when stationary
+      }
+      
+      // Drowning damage at 0 stamina
+      if (this.stamina === 0) {
+        this.takeDamage(delta * 0.083) // 5 damage/second
+      }
     } else {
-      this.stamina = Math.min(100, this.stamina + delta * 0.02)
+      // On beach: stamina regenerates
+      this.stamina = Math.min(100, this.stamina + delta * 0.167) // 10 points/second
     }
     
-    // Stamina affects speed
-    if (this.stamina < 20) {
-      this.currentSpeed *= 0.5
+    // Stamina affects speed (more gradual)
+    const staminaSpeedModifier = this.stamina / 100
+    if (this.stamina === 0 && this.isInWater) {
+      // Drowning: very slow movement
+      this.currentSpeed *= 0.25
+    } else {
+      // Normal stamina-based speed reduction
+      this.currentSpeed *= (0.5 + 0.5 * staminaSpeedModifier)
     }
 
     // Apply special ability speed modifiers
