@@ -6,19 +6,41 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "*",
+    "@ai-sdk/google": "*",
+    "@ai-sdk/openai": "*",
+    "ai": "beta",
+    "clsx": "^2.1.1",
+    "convex": "^1.25.0",
+    "framer-motion": "^11.2.0",
+    "gsap": "^3.13.0",
+    "lucide-react": "^0.525.0",
+    "next": "15.3.4",
+    "pixi.js": "^8.10.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "next": "15.3.4"
+    "tailwind-merge": "^2.3.0",
+    "zustand": "^5.0.2"
   },
   "devDependencies": {
-    "typescript": "^5",
+    "@tailwindcss/postcss": "^4",
+    "@testing-library/react": "^16.0.0",
+    "@testing-library/user-event": "^14.5.2",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@tailwindcss/postcss": "^4",
-    "tailwindcss": "^4"
+    "@vitejs/plugin-react": "^4.3.1",
+    "@vitest/coverage-v8": "^2.0.5",
+    "@vitest/ui": "^2.0.5",
+    "jsdom": "^24.1.1",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "vitest": "^2.0.5"
   }
 }

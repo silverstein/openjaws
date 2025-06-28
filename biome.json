@@ -1,0 +1,92 @@
+{
+  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "ignore": [
+      "node_modules",
+      ".next",
+      "dist",
+      "build",
+      "coverage",
+      "*.min.js",
+      "vendor",
+      "public/assets"
+    ]
+  },
+  "formatter": {
+    "enabled": true,
+    "formatWithErrors": false,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineEnding": "lf",
+    "lineWidth": 100,
+    "attributePosition": "auto"
+  },
+  "organizeImports": {
+    "enabled": true
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "complexity": {
+        "noBannedTypes": "error",
+        "noUselessConstructor": "error",
+        "noUselessTypeConstraint": "error",
+        "useArrowFunction": "error"
+      },
+      "correctness": {
+        "noConstAssign": "error",
+        "noConstantCondition": "error",
+        "noEmptyCharacterClassInRegex": "error",
+        "noInvalidConstructorSuper": "error",
+        "noUndeclaredVariables": "error",
+        "noUnreachable": "error",
+        "noUnusedVariables": "error",
+        "useExhaustiveDependencies": "warn",
+        "useHookAtTopLevel": "error"
+      },
+      "style": {
+        "noArguments": "error",
+        "noVar": "error",
+        "useAsConstAssertion": "error",
+        "useBlockStatements": "error",
+        "useConst": "error",
+        "useTemplate": "error"
+      },
+      "suspicious": {
+        "noAsyncPromiseExecutor": "error",
+        "noCatchAssign": "error",
+        "noCommentText": "error",
+        "noConfusingLabels": "error",
+        "noDebugger": "error",
+        "noDuplicateCase": "error",
+        "noDuplicateClassMembers": "error",
+        "noDuplicateJsxProps": "error",
+        "noDuplicateObjectKeys": "error",
+        "noDuplicateParameters": "error",
+        "noExplicitAny": "warn",
+        "noFallthroughSwitchClause": "error",
+        "noRedeclare": "error",
+        "noShadowRestrictedNames": "error",
+        "noUnsafeNegation": "error"
+      }
+    }
+  },
+  "javascript": {
+    "formatter": {
+      "jsxQuoteStyle": "double",
+      "quoteProperties": "asNeeded",
+      "trailingCommas": "es5",
+      "semicolons": "asNeeded",
+      "arrowParentheses": "always",
+      "bracketSpacing": true,
+      "bracketSameLine": false,
+      "attributePosition": "auto"
+    }
+  }
+}
