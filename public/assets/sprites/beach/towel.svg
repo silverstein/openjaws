@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="80" height="48" xmlns="http://www.w3.org/2000/svg">
+  <!-- Towel -->
+  <rect x="8" y="12" width="64" height="32" rx="4" fill="#4ecdc4" stroke="#339999" stroke-width="2"/>
+
+  <!-- Stripes -->
+  <rect x="8" y="18" width="64" height="4" fill="#fff" opacity="0.3"/>
+  <rect x="8" y="34" width="64" height="4" fill="#fff" opacity="0.3"/>
+
+  <!-- Shadow/fold -->
+  <path d="M 40 12 Q 48 24 40 44" fill="#000" opacity="0.1"/>
+</svg>

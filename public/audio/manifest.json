@@ -1,0 +1,48 @@
+{
+  "version": "1.0.0",
+  "generated": "2025-12-06T02:45:25.354Z",
+  "sounds": {
+    "ocean_ambience": {
+      "file": "ocean_ambience.mp3",
+      "description": "Ocean waves ambient sound (looping)",
+      "type": "music",
+      "placeholder": true
+    },
+    "shark_tension": {
+      "file": "shark_tension.mp3",
+      "description": "Tense music when shark is nearby",
+      "type": "music",
+      "placeholder": true
+    },
+    "bite": {
+      "file": "bite.mp3",
+      "description": "Bite/damage sound effect",
+      "type": "sfx",
+      "placeholder": true
+    },
+    "npc_chime": {
+      "file": "npc_chime.mp3",
+      "description": "Pleasant chime for NPC interaction",
+      "type": "sfx",
+      "placeholder": true
+    },
+    "ability_activate": {
+      "file": "ability_activate.mp3",
+      "description": "Power-up sound for ability activation",
+      "type": "sfx",
+      "placeholder": true
+    },
+    "selfie_camera": {
+      "file": "selfie_camera.mp3",
+      "description": "Camera shutter sound",
+      "type": "sfx",
+      "placeholder": true
+    },
+    "game_over": {
+      "file": "game_over.mp3",
+      "description": "Game over dramatic sound",
+      "type": "sfx",
+      "placeholder": true
+    }
+  }
+}

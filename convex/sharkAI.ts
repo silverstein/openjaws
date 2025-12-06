@@ -1,6 +1,6 @@
-import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
-import { SharkDecisionInput, SharkMemory, MemoryPattern } from "./types";
+import { v } from "convex/values"
+import { mutation, query } from "./_generated/server"
+import type { SharkMemory } from "./types"
 
 // Make shark AI decision
 export const makeSharkDecision = mutation({
@@ -18,9 +18,9 @@ export const makeSharkDecision = mutation({
     reasoning: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const shark = await ctx.db.get(args.sharkId);
+    const shark = await ctx.db.get(args.sharkId)
     if (!shark || shark.role !== "shark") {
-      throw new Error("Invalid shark player");
+      throw new Error("Invalid shark player")
     }
 
     // Record the AI decision
@@ -40,31 +40,31 @@ export const makeSharkDecision = mutation({
       inDanger: false,
       timestamp: Date.now(),
       frameNumber: 0,
-    });
+    })
 
     // Update shark state based on action
     const updates: any = {
       lastUpdate: Date.now(),
-    };
+    }
 
     switch (args.action) {
       case "hunt":
-        updates.sharkRage = Math.min(100, (shark.sharkRage || 0) + 10);
-        break;
+        updates.sharkRage = Math.min(100, (shark.sharkRage || 0) + 10)
+        break
       case "retreat":
-        updates.sharkRage = Math.max(0, (shark.sharkRage || 0) - 20);
-        updates.sharkHunger = Math.max(0, (shark.sharkHunger || 50) - 5);
-        break;
+        updates.sharkRage = Math.max(0, (shark.sharkRage || 0) - 20)
+        updates.sharkHunger = Math.max(0, (shark.sharkHunger || 50) - 5)
+        break
       case "taunt":
-        updates.sharkRage = Math.min(100, (shark.sharkRage || 0) + 5);
-        break;
+        updates.sharkRage = Math.min(100, (shark.sharkRage || 0) + 5)
+        break
     }
 
-    await ctx.db.patch(args.sharkId, updates);
+    await ctx.db.patch(args.sharkId, updates)
 
-    return { success: true };
+    return { success: true }
   },
-});
+})
 
 // Update shark memory about a player
 export const updateSharkMemory = mutation({
@@ -75,15 +75,19 @@ export const updateSharkMemory = mutation({
     encounter: v.object({
       type: v.union(v.literal("hunt"), v.literal("escape"), v.literal("taunt")),
       success: v.boolean(),
-      pattern: v.optional(v.object({
-        type: v.string(),
-        data: v.any(),
-        confidence: v.number(),
-      })),
-      memorableMoment: v.optional(v.object({
-        description: v.string(),
-        intensity: v.number(),
-      })),
+      pattern: v.optional(
+        v.object({
+          type: v.string(),
+          data: v.any(),
+          confidence: v.number(),
+        })
+      ),
+      memorableMoment: v.optional(
+        v.object({
+          description: v.string(),
+          intensity: v.number(),
+        })
+      ),
     }),
   },
   handler: async (ctx, args) => {
@@ -91,71 +95,69 @@ export const updateSharkMemory = mutation({
     const existingMemory = await ctx.db
       .query("sharkMemories")
       .withIndex("by_shark_target", (q) =>
-        q.eq("sharkUserId", args.sharkUserId)
-         .eq("targetUserId", args.targetUserId)
+        q.eq("sharkUserId", args.sharkUserId).eq("targetUserId", args.targetUserId)
       )
-      .first();
+      .first()
 
     if (existingMemory) {
       // Update existing memory
       const updates: any = {
         encounters: existingMemory.encounters + 1,
         lastEncounter: Date.now(),
-      };
+      }
 
       if (args.encounter.type === "hunt" && args.encounter.success) {
-        updates.successfulHunts = existingMemory.successfulHunts + 1;
+        updates.successfulHunts = existingMemory.successfulHunts + 1
       } else if (args.encounter.type === "escape") {
-        updates.escapes = existingMemory.escapes + 1;
+        updates.escapes = existingMemory.escapes + 1
       }
 
       // Update patterns if provided
       if (args.encounter.pattern) {
-        const patterns = [...existingMemory.patterns];
+        const patterns = [...existingMemory.patterns]
         const existingPatternIndex = patterns.findIndex(
-          p => p.type === args.encounter.pattern!.type
-        );
+          (p) => p.type === args.encounter.pattern?.type
+        )
 
-        if (existingPatternIndex >= 0) {
+        if (existingPatternIndex >= 0 && patterns[existingPatternIndex] && args.encounter.pattern) {
           // Update confidence of existing pattern
           patterns[existingPatternIndex] = {
-            ...patterns[existingPatternIndex],
-            confidence: Math.min(
-              1,
-              patterns[existingPatternIndex].confidence + 0.1
-            ),
+            ...patterns[existingPatternIndex]!,
+            confidence: Math.min(1, patterns[existingPatternIndex]!.confidence + 0.1),
             data: args.encounter.pattern.data,
-          };
-        } else {
-          patterns.push(args.encounter.pattern);
+            type: args.encounter.pattern.type,
+          }
+        } else if (args.encounter.pattern) {
+          patterns.push(args.encounter.pattern)
         }
 
-        updates.patterns = patterns;
+        updates.patterns = patterns
       }
 
       // Add memorable moment if provided
       if (args.encounter.memorableMoment) {
-        const moments = [...existingMemory.memorableMoments];
+        const moments = [...existingMemory.memorableMoments]
         moments.push({
           gameId: args.gameId,
           description: args.encounter.memorableMoment.description,
           intensity: args.encounter.memorableMoment.intensity,
           timestamp: Date.now(),
-        });
+        })
 
         // Keep only the 10 most intense moments
-        moments.sort((a, b) => b.intensity - a.intensity);
-        updates.memorableMoments = moments.slice(0, 10);
+        moments.sort((a, b) => b.intensity - a.intensity)
+        updates.memorableMoments = moments.slice(0, 10)
       }
 
       // Update relationship based on encounters
       updates.relationship = calculateRelationship(
-        existingMemory.successfulHunts + (args.encounter.type === "hunt" && args.encounter.success ? 1 : 0),
+        existingMemory.successfulHunts +
+          (args.encounter.type === "hunt" && args.encounter.success ? 1 : 0),
         existingMemory.escapes + (args.encounter.type === "escape" ? 1 : 0),
         existingMemory.encounters + 1
-      );
+      )
 
-      await ctx.db.patch(existingMemory._id, updates);
+      await ctx.db.patch(existingMemory._id, updates)
     } else {
       // Create new memory
       const newMemory: Omit<SharkMemory, "_id" | "_creationTime"> = {
@@ -167,24 +169,26 @@ export const updateSharkMemory = mutation({
         patterns: args.encounter.pattern ? [args.encounter.pattern] : [],
         relationship: "neutral",
         memorableMoments: args.encounter.memorableMoment
-          ? [{
-              gameId: args.gameId,
-              description: args.encounter.memorableMoment.description,
-              intensity: args.encounter.memorableMoment.intensity,
-              timestamp: Date.now(),
-            }]
+          ? [
+              {
+                gameId: args.gameId,
+                description: args.encounter.memorableMoment.description,
+                intensity: args.encounter.memorableMoment.intensity,
+                timestamp: Date.now(),
+              },
+            ]
           : [],
         firstEncounter: Date.now(),
         lastEncounter: Date.now(),
         totalGamesPlayed: 1,
-      };
+      }
 
-      await ctx.db.insert("sharkMemories", newMemory);
+      await ctx.db.insert("sharkMemories", newMemory)
     }
 
-    return { success: true };
+    return { success: true }
   },
-});
+})
 
 // Get shark memories for AI decision making
 export const getSharkMemories = query({
@@ -197,11 +201,11 @@ export const getSharkMemories = query({
       .query("sharkMemories")
       .withIndex("by_shark", (q) => q.eq("sharkUserId", args.sharkUserId))
       .order("desc")
-      .take(args.limit || 50);
+      .take(args.limit || 50)
 
-    return memories;
+    return memories
   },
-});
+})
 
 // Get specific memory about a player
 export const getSharkMemoryForPlayer = query({
@@ -213,14 +217,13 @@ export const getSharkMemoryForPlayer = query({
     const memory = await ctx.db
       .query("sharkMemories")
       .withIndex("by_shark_target", (q) =>
-        q.eq("sharkUserId", args.sharkUserId)
-         .eq("targetUserId", args.targetUserId)
+        q.eq("sharkUserId", args.sharkUserId).eq("targetUserId", args.targetUserId)
       )
-      .first();
+      .first()
 
-    return memory;
+    return memory
   },
-});
+})
 
 // Get recent player actions for pattern recognition
 export const getRecentPlayerActions = query({
@@ -234,11 +237,11 @@ export const getRecentPlayerActions = query({
       .query("playerActions")
       .withIndex("by_player", (q) => q.eq("playerId", args.playerId))
       .order("desc")
-      .take(args.limit || 100);
+      .take(args.limit || 100)
 
-    return actions;
+    return actions
   },
-});
+})
 
 // Update shark personality based on play style
 export const updateSharkPersonality = mutation({
@@ -253,19 +256,19 @@ export const updateSharkPersonality = mutation({
     ),
   },
   handler: async (ctx, args) => {
-    const shark = await ctx.db.get(args.sharkId);
+    const shark = await ctx.db.get(args.sharkId)
     if (!shark || shark.role !== "shark") {
-      throw new Error("Invalid shark player");
+      throw new Error("Invalid shark player")
     }
 
     await ctx.db.patch(args.sharkId, {
       sharkPersonality: args.personality,
       lastUpdate: Date.now(),
-    });
+    })
 
-    return { success: true };
+    return { success: true }
   },
-});
+})
 
 // Helper function to calculate relationship based on encounters
 function calculateRelationship(
@@ -273,22 +276,22 @@ function calculateRelationship(
   escapes: number,
   totalEncounters: number
 ): SharkMemory["relationship"] {
-  const huntRate = hunts / totalEncounters;
-  const escapeRate = escapes / totalEncounters;
+  const huntRate = hunts / totalEncounters
+  const escapeRate = escapes / totalEncounters
 
   if (totalEncounters < 3) {
-    return "neutral";
+    return "neutral"
   }
 
   if (huntRate > 0.7) {
-    return "favorite_snack";
+    return "favorite_snack"
   } else if (escapeRate > 0.7) {
-    return "nemesis";
+    return "nemesis"
   } else if (totalEncounters > 10 && escapeRate > 0.5) {
-    return "respected";
+    return "respected"
   } else if (totalEncounters > 5 && huntRate < 0.3 && escapeRate < 0.3) {
-    return "rival";
+    return "rival"
   }
 
-  return "neutral";
+  return "neutral"
 }

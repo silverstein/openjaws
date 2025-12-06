@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="48" height="64" xmlns="http://www.w3.org/2000/svg">
+  <!-- Fin shape -->
+  <path d="M 24 64 L 44 8 L 34 48 L 14 48 L 4 8 Z" fill="#2c3e50" stroke="#1a252f" stroke-width="2"/>
+
+  <!-- Shading -->
+  <path d="M 24 64 L 34 48 L 24 32 Z" fill="#1a252f" opacity="0.3"/>
+</svg>

@@ -1,20 +1,21 @@
 {
-  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.1.2/schema.json",
   "vcs": {
     "enabled": true,
     "clientKind": "git",
     "useIgnoreFile": true
   },
   "files": {
-    "ignore": [
-      "node_modules",
-      ".next",
-      "dist",
-      "build",
-      "coverage",
-      "*.min.js",
-      "vendor",
-      "public/assets"
+    "includes": [
+      "**",
+      "!**/node_modules",
+      "!**/.next",
+      "!**/dist",
+      "!**/build",
+      "!**/coverage",
+      "!**/*.min.js",
+      "!**/vendor",
+      "!**/public/assets"
     ]
   },
   "formatter": {
@@ -26,9 +27,7 @@
     "lineWidth": 100,
     "attributePosition": "auto"
   },
-  "organizeImports": {
-    "enabled": true
-  },
+  "assist": { "actions": { "source": { "organizeImports": "on" } } },
   "linter": {
     "enabled": true,
     "rules": {
@@ -37,7 +36,8 @@
         "noBannedTypes": "error",
         "noUselessConstructor": "error",
         "noUselessTypeConstraint": "error",
-        "useArrowFunction": "error"
+        "useArrowFunction": "error",
+        "noArguments": "error"
       },
       "correctness": {
         "noConstAssign": "error",
@@ -51,8 +51,6 @@
         "useHookAtTopLevel": "error"
       },
       "style": {
-        "noArguments": "error",
-        "noVar": "error",
         "useAsConstAssertion": "error",
         "useBlockStatements": "error",
         "useConst": "error",
@@ -73,7 +71,8 @@
         "noFallthroughSwitchClause": "error",
         "noRedeclare": "error",
         "noShadowRestrictedNames": "error",
-        "noUnsafeNegation": "error"
+        "noUnsafeNegation": "error",
+        "noVar": "error"
       }
     }
   },

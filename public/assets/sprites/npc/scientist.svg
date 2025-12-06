@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="56" height="56" xmlns="http://www.w3.org/2000/svg">
+  <!-- Body circle -->
+  <circle cx="28" cy="28" r="24" fill="#32cd32" stroke="#000" stroke-width="2"/>
+
+  <!-- Eyes -->
+  <circle cx="20" cy="24" r="3" fill="#000"/>
+  <circle cx="36" cy="24" r="3" fill="#000"/>
+
+  <!-- Smile -->
+  <path d="M 18 32 Q 28 36 38 32" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- Emoji/Icon representation -->
+  <text x="28" y="18" font-size="20" text-anchor="middle">🔬</text>
+</svg>

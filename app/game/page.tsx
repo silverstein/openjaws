@@ -1,10 +1,35 @@
-import { GameCanvas } from '@/components/game/GameCanvas'
+"use client"
 
-export default function GamePage() {
+import { useSearchParams } from "next/navigation"
+import { Suspense } from "react"
+import { GameCanvas } from "@/components/game/GameCanvas"
+import { MultiplayerGameCanvas } from "@/components/game/MultiplayerGameCanvas"
+import type { Id } from "@/convex/_generated/dataModel"
+
+function GamePageContent() {
+  const searchParams = useSearchParams()
+  const gameId = searchParams.get("gameId") as Id<"games"> | null
+  const userId = searchParams.get("userId")
+  const playerName = searchParams.get("playerName")
+
+  // If we have gameId and userId, this is a multiplayer game
+  if (gameId && userId) {
+    return (
+      <main className="w-full h-screen overflow-hidden bg-black">
+        <MultiplayerGameCanvas
+          gameId={gameId}
+          userId={userId}
+          playerName={playerName || "Player"}
+        />
+      </main>
+    )
+  }
+
+  // Otherwise, it's solo mode
   return (
     <main className="w-full h-screen overflow-hidden bg-black">
       <GameCanvas />
-      
+
       {/* Game UI Overlay */}
       <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
         {/* Instructions */}
@@ -31,12 +56,27 @@ export default function GamePage() {
         {/* Bottom status bar */}
         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-6">
           <div className="max-w-4xl mx-auto flex items-center justify-between text-white">
-            <div className="text-sm text-white/60">
-              Press ESC to return to lobby
-            </div>
+            <div className="text-sm text-white/60">Press ESC to return to lobby</div>
           </div>
         </div>
       </div>
     </main>
+  )
+}
+
+export default function GamePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="w-full h-screen flex items-center justify-center bg-gradient-to-b from-sky-200 to-blue-400">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4" />
+            <p className="text-white text-xl">Loading game...</p>
+          </div>
+        </div>
+      }
+    >
+      <GamePageContent />
+    </Suspense>
   )
 }

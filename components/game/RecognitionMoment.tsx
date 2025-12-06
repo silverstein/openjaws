@@ -1,7 +1,7 @@
-'use client'
+"use client"
 
-import React, { useEffect, useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { AnimatePresence, motion } from "framer-motion"
+import { useEffect, useState } from "react"
 
 interface Memory {
   encounter: string
@@ -13,7 +13,7 @@ interface RecognitionMomentProps {
   isActive: boolean
   playerName: string
   memories: Memory[]
-  recognitionLevel: 'first' | 'familiar' | 'nemesis'
+  recognitionLevel: "first" | "familiar" | "nemesis"
   onComplete: () => void
 }
 
@@ -22,67 +22,70 @@ export function RecognitionMoment({
   playerName,
   memories,
   recognitionLevel,
-  onComplete
+  onComplete,
 }: RecognitionMomentProps) {
-  const [phase, setPhase] = useState<'zoom' | 'reveal' | 'memories' | 'fade'>('zoom')
-  
+  const [phase, setPhase] = useState<"zoom" | "reveal" | "memories" | "fade">("zoom")
+
   useEffect(() => {
-    if (!isActive) return
-    
+    if (!isActive) {
+      return
+    }
+
     // Dramatic sequence timing
     const sequence = [
-      { phase: 'zoom' as const, duration: 800 },
-      { phase: 'reveal' as const, duration: 1500 },
-      { phase: 'memories' as const, duration: 3000 },
-      { phase: 'fade' as const, duration: 500 }
+      { phase: "zoom" as const, duration: 800 },
+      { phase: "reveal" as const, duration: 1500 },
+      { phase: "memories" as const, duration: 3000 },
+      { phase: "fade" as const, duration: 500 },
     ]
-    
+
     let currentIndex = 0
     const timers: NodeJS.Timeout[] = []
-    
+
     const runSequence = () => {
-      if (currentIndex < sequence.length) {
-        setPhase(sequence[currentIndex].phase)
+      const currentItem = sequence[currentIndex]
+      if (currentIndex < sequence.length && currentItem) {
+        setPhase(currentItem.phase)
         const timer = setTimeout(() => {
           currentIndex++
           runSequence()
-        }, sequence[currentIndex].duration)
+        }, currentItem.duration)
         timers.push(timer)
       } else {
         onComplete()
       }
     }
-    
+
     runSequence()
-    
+
     return () => {
-      timers.forEach(timer => clearTimeout(timer))
+      timers.forEach((timer) => clearTimeout(timer))
     }
   }, [isActive, onComplete])
-  
+
   const getMainText = () => {
     switch (recognitionLevel) {
-      case 'first':
-        return 'THE SHARK NOTICES YOU'
-      case 'familiar':
-        return 'THE SHARK REMEMBERS YOU'
-      case 'nemesis':
-        return 'YOUR NEMESIS AWAITS'
+      case "first":
+        return "THE SHARK NOTICES YOU"
+      case "familiar":
+        return "THE SHARK REMEMBERS YOU"
+      case "nemesis":
+        return "YOUR NEMESIS AWAITS"
       default:
-        return 'THE SHARK REMEMBERS'
+        return "THE SHARK REMEMBERS"
     }
   }
-  
+
   const getSubText = () => {
     switch (recognitionLevel) {
-      case 'first':
-        return 'A new pattern emerges...'
-      case 'familiar':
+      case "first":
+        return "A new pattern emerges..."
+      case "familiar":
         return `${playerName}... we meet again`
-      case 'nemesis':
-        return 'This time will be different'
+      case "nemesis":
+        return "This time will be different"
       default:
-        return 'Memory activated'
+        return "Memory activated"
     }
   }
 
@@ -99,28 +102,28 @@ export function RecognitionMoment({
           <motion.div
             className="absolute inset-0 bg-black"
             initial={{ opacity: 0 }}
-            animate={{ 
-              opacity: phase === 'zoom' ? 0.8 : phase === 'fade' ? 0 : 0.9 
+            animate={{
+              opacity: phase === "zoom" ? 0.8 : phase === "fade" ? 0 : 0.9,
             }}
             transition={{ duration: 0.5 }}
           />
-          
+
           {/* Cinematic bars */}
           <motion.div
             className="absolute top-0 left-0 right-0 bg-black"
             initial={{ height: 0 }}
-            animate={{ height: phase !== 'fade' ? '15vh' : 0 }}
+            animate={{ height: phase !== "fade" ? "15vh" : 0 }}
             transition={{ duration: 0.5 }}
           />
           <motion.div
             className="absolute bottom-0 left-0 right-0 bg-black"
             initial={{ height: 0 }}
-            animate={{ height: phase !== 'fade' ? '15vh' : 0 }}
+            animate={{ height: phase !== "fade" ? "15vh" : 0 }}
             transition={{ duration: 0.5 }}
           />
-          
+
           {/* Main recognition text */}
-          {(phase === 'reveal' || phase === 'memories') && (
+          {(phase === "reveal" || phase === "memories") && (
             <motion.div
               className="absolute inset-0 flex flex-col items-center justify-center"
               initial={{ scale: 1.5, opacity: 0 }}
@@ -129,20 +132,20 @@ export function RecognitionMoment({
             >
               <motion.h1
                 className="text-6xl md:text-8xl font-bold text-red-500 mb-4 text-center tracking-wider"
-                style={{ textShadow: '0 0 30px rgba(239, 68, 68, 0.8)' }}
+                style={{ textShadow: "0 0 30px rgba(239, 68, 68, 0.8)" }}
                 animate={{
                   opacity: [1, 0.8, 1],
-                  scale: [1, 1.02, 1]
+                  scale: [1, 1.02, 1],
                 }}
                 transition={{
                   duration: 2,
                   repeat: Infinity,
-                  ease: "easeInOut"
+                  ease: "easeInOut",
                 }}
               >
                 {getMainText()}
               </motion.h1>
-              
+
               <motion.p
                 className="text-xl md:text-3xl text-red-300 italic"
                 initial={{ opacity: 0, y: 20 }}
@@ -153,29 +156,29 @@ export function RecognitionMoment({
               </motion.p>
             </motion.div>
           )}
-          
+
           {/* Memory flashes */}
-          {phase === 'memories' && memories.length > 0 && (
+          {phase === "memories" && memories.length > 0 && (
             <div className="absolute inset-0 flex items-center justify-center">
               {memories.slice(0, 3).map((memory, index) => (
                 <motion.div
                   key={index}
                   className="absolute bg-black/80 p-6 rounded-lg border border-red-900/50"
-                  initial={{ 
-                    opacity: 0, 
+                  initial={{
+                    opacity: 0,
                     scale: 0.8,
                     x: (index - 1) * 300,
-                    y: (index - 1) * 50
+                    y: (index - 1) * 50,
                   }}
-                  animate={{ 
+                  animate={{
                     opacity: [0, 1, 0],
                     scale: [0.8, 1, 0.9],
-                    rotate: [0, (index - 1) * 5, (index - 1) * 5]
+                    rotate: [0, (index - 1) * 5, (index - 1) * 5],
                   }}
-                  transition={{ 
+                  transition={{
                     delay: index * 0.3,
                     duration: 1.5,
-                    times: [0, 0.5, 1]
+                    times: [0, 0.5, 1],
                   }}
                 >
                   <p className="text-red-200 text-sm mb-2">{memory.timestamp}</p>
@@ -185,10 +188,14 @@ export function RecognitionMoment({
               ))}
             </div>
           )}
-          
+
           {/* Dramatic zoom lines */}
-          {phase === 'zoom' && (
-            <svg className="absolute inset-0 w-full h-full">
+          {phase === "zoom" && (
+            <svg
+              className="absolute inset-0 w-full h-full"
+              role="img"
+              aria-label="Dramatic zoom effect"
+            >
               {[...Array(8)].map((_, i) => (
                 <motion.line
                   key={i}
@@ -205,9 +212,9 @@ export function RecognitionMoment({
               ))}
             </svg>
           )}
-          
+
           {/* Screen flash effect */}
-          {phase === 'reveal' && (
+          {phase === "reveal" && (
             <motion.div
               className="absolute inset-0 bg-red-500"
               initial={{ opacity: 0.8 }}

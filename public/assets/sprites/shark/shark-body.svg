@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="80" height="128" xmlns="http://www.w3.org/2000/svg">
+  <!-- Body -->
+  <path d="M 40 16 L 60 96 L 40 84 L 20 96 Z" fill="#2c3e50" stroke="#1a252f" stroke-width="2"/>
+
+  <!-- Dorsal fin -->
+  <path d="M 40 44 L 55 56 L 25 56 Z" fill="#34495e"/>
+
+  <!-- Tail -->
+  <path d="M 40 84 L 65 108 L 40 96 L 15 108 Z" fill="#2c3e50" stroke="#1a252f" stroke-width="1"/>
+
+  <!-- Eyes -->
+  <circle cx="30" cy="32" r="4" fill="#000"/>
+  <circle cx="50" cy="32" r="4" fill="#000"/>
+
+  <!-- Teeth -->
+  <path d="M 28 20 L 30 16 L 32 20" fill="#fff"/>
+  <path d="M 34 18 L 36 14 L 38 18" fill="#fff"/>
+  <path d="M 40 16 L 42 12 L 44 16" fill="#fff"/>
+  <path d="M 46 18 L 48 14 L 50 18" fill="#fff"/>
+  <path d="M 52 20 L 54 16 L 56 20" fill="#fff"/>
+</svg>

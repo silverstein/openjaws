@@ -1,80 +1,128 @@
-import { Container, Graphics, Text, TextStyle } from 'pixi.js'
-import { ViewerShield } from '../effects/ViewerShield'
+import { Container, Graphics, Sprite, Text, TextStyle } from "pixi.js"
+import { ViewerShield } from "../effects/ViewerShield"
+import { assetLoader } from "../AssetLoader"
 
 // Character archetype types from docs
-export type CharacterType = 'influencer' | 'boomerDad' | 'surferBro' | 'lifeguard' | 'marineBiologist' | 'springBreaker'
+export type CharacterType =
+  | "influencer"
+  | "boomerDad"
+  | "surferBro"
+  | "lifeguard"
+  | "marineBiologist"
+  | "springBreaker"
+
+// Ability effect types that GameCanvas can react to
+export type AbilityEffect =
+  | { type: "none" }
+  | { type: "stun_shark"; duration: number; fact: string }
+  | { type: "shield_active"; shields: number }
+  | { type: "invincible" }
+  | { type: "speed_boost"; multiplier: number }
+  | { type: "drunk_controls" }
+  | { type: "throw_item"; item: string; damage: number }
+
+// Shark facts for Marine Biologist
+const SHARK_FACTS = [
+  "Sharks have been around for 450 million years!",
+  "A shark can detect one drop of blood in a million drops of water!",
+  "Sharks don't have bones - their skeleton is made of cartilage!",
+  "Great whites can't swim backwards!",
+  "Sharks have electroreceptors to sense heartbeats!",
+  "A shark's teeth are replaced every 8-10 days!",
+  "Whale sharks are the largest fish in the ocean!",
+  "Sharks sleep with their eyes open!",
+]
 
 // Character stats and abilities
 const CHARACTER_STATS = {
   influencer: {
-    name: 'The Influencer',
+    name: "The Influencer",
     baseSpeed: 3,
     swimSpeed: 2,
-    ability: 'Going Live',
-    color: 0xFF6B6B // Hot pink
+    ability: "Going Live",
+    color: 0xff6b6b, // Hot pink
+    spritePath: "/assets/sprites/player/influencer.png",
   },
   boomerDad: {
-    name: 'The Boomer Dad',
+    name: "The Boomer Dad",
     baseSpeed: 2,
     swimSpeed: 1.5,
-    ability: 'Dad Reflexes',
-    color: 0x4169E1 // Royal blue
+    ability: "Dad Reflexes",
+    color: 0x4169e1, // Royal blue
+    spritePath: "/assets/sprites/player/boomer-dad.png",
   },
   surferBro: {
-    name: 'The Surfer Bro',
+    name: "The Surfer Bro",
     baseSpeed: 3.5,
     swimSpeed: 4,
-    ability: 'Surf Wake',
-    color: 0xFFA07A // Warning orange
+    ability: "Surf Wake",
+    color: 0xffa07a, // Warning orange
+    spritePath: "/assets/sprites/player/surfer-bro.png",
   },
   lifeguard: {
-    name: 'The Lifeguard',
+    name: "The Lifeguard",
     baseSpeed: 3,
     swimSpeed: 3.5,
-    ability: 'Baywatch Run',
-    color: 0xFF0000 // Classic red
+    ability: "Baywatch Run",
+    color: 0xff0000, // Classic red
+    spritePath: "/assets/sprites/player/lifeguard.png",
   },
   marineBiologist: {
-    name: 'The Marine Biologist',
+    name: "The Marine Biologist",
     baseSpeed: 2.5,
     swimSpeed: 2,
-    ability: 'Bore with Facts',
-    color: 0x32CD32 // Lime green
+    ability: "Bore with Facts",
+    color: 0x32cd32, // Lime green
+    spritePath: "/assets/sprites/player/marine-biologist.png",
   },
   springBreaker: {
-    name: 'The Spring Breaker',
+    name: "The Spring Breaker",
     baseSpeed: 4,
     swimSpeed: 2.5,
-    ability: 'YOLO Mode',
-    color: 0xFF1493 // Deep pink
-  }
+    ability: "YOLO Mode",
+    color: 0xff1493, // Deep pink
+    spritePath: "/assets/sprites/player/spring-breaker.png",
+  },
 }
 
 export class Player {
   public container: Container
-  private sprite: Graphics
+  private sprite: Sprite | Graphics
+  private effectsGraphics: Graphics
   private nameText: Text
   private characterType: CharacterType
-  private stats: typeof CHARACTER_STATS[CharacterType]
+  private stats: (typeof CHARACTER_STATS)[CharacterType]
   private currentSpeed: number
   public isInWater: boolean = false
   private abilityActive: boolean = false
   private abilityDuration: number = 0
   private abilityCooldown: number = 0
   private viewerShield: ViewerShield | null = null
-  
+
   public x: number
   public y: number
   public vx: number = 0
   public vy: number = 0
-  
+
   // AI-accessible properties
   public health: number = 100
   public stamina: number = 100
   public archetype: string
   public userId: string | null = null
+  public id: string
+  public name: string
 
-  constructor(x: number, y: number, type: CharacterType = 'influencer', userId?: string) {
+  // Ability effect state
+  private pendingAbilityEffect: AbilityEffect = { type: "none" }
+  private isInvincible: boolean = false
+  private hasDrunkControls: boolean = false
+  private sharkProximitySpeedBoost: boolean = false
+  private currentFact: string = ""
+
+  // Cooldown constants (in ms)
+  private static readonly ABILITY_COOLDOWN = 10000 // 10 seconds between uses
+
+  constructor(x: number, y: number, type: CharacterType = "influencer", userId?: string) {
     this.x = x
     this.y = y
     this.characterType = type
@@ -82,34 +130,50 @@ export class Player {
     this.stats = CHARACTER_STATS[type]
     this.currentSpeed = this.stats.baseSpeed
     this.userId = userId || null
+    this.id = userId || `player_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
+    this.name = this.stats.name
 
     // Create container
     this.container = new Container()
     this.container.x = x
     this.container.y = y
 
-    // Create player sprite (simple circle with character color)
-    this.sprite = new Graphics()
-    this.drawCharacter()
+    // Create player sprite - try to use texture first, fallback to graphics
+    const texture = assetLoader.getTexture(this.stats.spritePath)
+    if (texture) {
+      this.sprite = new Sprite(texture)
+      this.sprite.anchor.set(0.5)
+      this.sprite.scale.set(0.8) // Scale to appropriate size
+    } else {
+      // Fallback to graphics if texture not loaded
+      this.sprite = new Graphics()
+      this.drawCharacterFallback()
+    }
     this.container.addChild(this.sprite)
+
+    // Create separate graphics layer for effects (water ripples, ability glow, etc.)
+    this.effectsGraphics = new Graphics()
+    this.container.addChild(this.effectsGraphics)
 
     // Add name text
     const textStyle = new TextStyle({
-      fontFamily: 'Arial',
+      fontFamily: "Arial",
       fontSize: 12,
-      fill: 0xFFFFFF,
+      fill: 0xffffff,
       stroke: { color: 0x000000, width: 2 },
-      align: 'center'
+      align: "center",
     })
-    
+
     this.nameText = new Text({ text: this.stats.name, style: textStyle })
     this.nameText.anchor.set(0.5, -1.5)
     this.container.addChild(this.nameText)
   }
 
-  private drawCharacter(): void {
+  private drawCharacterFallback(): void {
+    if (!(this.sprite instanceof Graphics)) return
+
     this.sprite.clear()
-    
+
     // Draw main body circle
     this.sprite.circle(0, 0, 20)
     this.sprite.fill(this.stats.color)
@@ -128,58 +192,107 @@ export class Player {
     this.sprite.closePath()
     this.sprite.fill(this.stats.color)
     this.sprite.stroke({ width: 1, color: 0x000000 })
+  }
+
+  private drawEffects(): void {
+    this.effectsGraphics.clear()
 
     // Add swimming effect if in water
     if (this.isInWater) {
-      this.sprite.circle(0, 0, 25)
-      this.sprite.stroke({ width: 1, color: 0x4ECDC4, alpha: 0.5 })
-      
+      this.effectsGraphics.circle(0, 0, 25)
+      this.effectsGraphics.stroke({ width: 1, color: 0x4ecdc4, alpha: 0.5 })
+
       // Ripple effect
       for (let i = 0; i < 3; i++) {
-        this.sprite.circle(0, 0, 30 + i * 5)
-        this.sprite.stroke({ width: 1, color: 0x4ECDC4, alpha: 0.2 - i * 0.05 })
+        this.effectsGraphics.circle(0, 0, 30 + i * 5)
+        this.effectsGraphics.stroke({ width: 1, color: 0x4ecdc4, alpha: 0.2 - i * 0.05 })
       }
-      
+
       // Drowning indicator at low stamina
       if (this.stamina < 25) {
         // Pulsing red circle
         const pulseAlpha = 0.3 + Math.sin(Date.now() * 0.01) * 0.2
-        this.sprite.circle(0, 0, 22)
-        this.sprite.stroke({ width: 3, color: 0xFF0000, alpha: pulseAlpha })
-        
+        this.effectsGraphics.circle(0, 0, 22)
+        this.effectsGraphics.stroke({ width: 3, color: 0xff0000, alpha: pulseAlpha })
+
         // Bubble effects when drowning
         if (this.stamina === 0) {
           for (let i = 0; i < 3; i++) {
-            const bubbleY = -30 - i * 10 - (Date.now() * 0.05) % 20
-            this.sprite.circle(-5 + i * 5, bubbleY, 3)
-            this.sprite.fill({ color: 0xFFFFFF, alpha: 0.6 })
+            const bubbleY = -30 - i * 10 - ((Date.now() * 0.05) % 20)
+            this.effectsGraphics.circle(-5 + i * 5, bubbleY, 3)
+            this.effectsGraphics.fill({ color: 0xffffff, alpha: 0.6 })
           }
         }
       }
     }
 
-    // Show ability activation
-    if (this.abilityActive) {
-      this.sprite.star(0, 0, 5, 35, 25, 0)
-      this.sprite.fill({ color: 0xFFD700, alpha: 0.3 })
+    // Invincibility effect (golden glow)
+    if (this.isInvincible) {
+      const pulseSize = 30 + Math.sin(Date.now() * 0.01) * 5
+      this.effectsGraphics.circle(0, 0, pulseSize)
+      this.effectsGraphics.fill({ color: 0xffd700, alpha: 0.3 })
+      this.effectsGraphics.circle(0, 0, pulseSize + 5)
+      this.effectsGraphics.stroke({ width: 3, color: 0xffd700, alpha: 0.6 })
+    }
+
+    // Drunk controls effect (wobbly purple aura)
+    if (this.hasDrunkControls) {
+      const wobble = Math.sin(Date.now() * 0.02) * 10
+      this.effectsGraphics.ellipse(wobble, 0, 35, 25)
+      this.effectsGraphics.fill({ color: 0xff1493, alpha: 0.2 })
+      // Add dizzy stars
+      for (let i = 0; i < 3; i++) {
+        const angle = (Date.now() * 0.005 + i * 2.1) % (Math.PI * 2)
+        const starX = Math.cos(angle) * 35
+        const starY = Math.sin(angle) * 20 - 30
+        this.effectsGraphics.star(starX, starY, 5, 8, 4)
+        this.effectsGraphics.fill({ color: 0xffff00, alpha: 0.8 })
+      }
+    }
+
+    // Speed boost effect (blue streaks)
+    if (this.sharkProximitySpeedBoost && this.abilityActive) {
+      for (let i = 0; i < 3; i++) {
+        const offset = (Date.now() * 0.1 + i * 10) % 30
+        this.effectsGraphics.moveTo(-15 + i * 10, 20 + offset)
+        this.effectsGraphics.lineTo(-15 + i * 10, 35 + offset)
+        this.effectsGraphics.stroke({ width: 3, color: 0x00bfff, alpha: 0.6 - offset * 0.02 })
+      }
+    }
+
+    // Show general ability activation (star burst)
+    if (this.abilityActive && !this.isInvincible && !this.hasDrunkControls) {
+      this.effectsGraphics.star(0, 0, 5, 35, 25, 0)
+      this.effectsGraphics.fill({ color: 0xffd700, alpha: 0.3 })
     }
   }
 
-  public update(delta: number, inputX: number, inputY: number, inWater: boolean): void {
+  public update(delta: number, inputX: number, inputY: number, inWater: boolean, sharkDistance?: number): void {
     // Update water state
-    const wasInWater = this.isInWater
     this.isInWater = inWater
-    
-    if (wasInWater !== this.isInWater) {
-      this.drawCharacter()
+
+    // Update visual effects
+    this.drawEffects()
+
+    // Process drunk controls - reverse and add wobble
+    let processedInputX = inputX
+    let processedInputY = inputY
+    if (this.hasDrunkControls) {
+      // Reverse controls
+      processedInputX = -inputX
+      processedInputY = -inputY
+      // Add random wobble
+      const wobbleAmount = 0.3
+      processedInputX += (Math.random() - 0.5) * wobbleAmount
+      processedInputY += (Math.random() - 0.5) * wobbleAmount
     }
 
     // Update speed based on terrain
     this.currentSpeed = this.isInWater ? this.stats.swimSpeed : this.stats.baseSpeed
-    
+
     // Update stamina based on water/beach and movement
-    const isMoving = Math.abs(inputX) > 0.1 || Math.abs(inputY) > 0.1
-    
+    const isMoving = Math.abs(processedInputX) > 0.1 || Math.abs(processedInputY) > 0.1
+
     if (this.isInWater) {
       // In water: stamina depletes
       if (isMoving) {
@@ -187,7 +300,7 @@ export class Player {
       } else {
         this.stamina = Math.max(0, this.stamina - delta * 0.033) // 2 points/second when stationary
       }
-      
+
       // Drowning damage at 0 stamina
       if (this.stamina === 0) {
         this.takeDamage(delta * 0.083) // 5 damage/second
@@ -196,7 +309,7 @@ export class Player {
       // On beach: stamina regenerates
       this.stamina = Math.min(100, this.stamina + delta * 0.167) // 10 points/second
     }
-    
+
     // Stamina affects speed (more gradual)
     const staminaSpeedModifier = this.stamina / 100
     if (this.stamina === 0 && this.isInWater) {
@@ -204,20 +317,25 @@ export class Player {
       this.currentSpeed *= 0.25
     } else {
       // Normal stamina-based speed reduction
-      this.currentSpeed *= (0.5 + 0.5 * staminaSpeedModifier)
+      this.currentSpeed *= 0.5 + 0.5 * staminaSpeedModifier
     }
 
     // Apply special ability speed modifiers
-    if (this.characterType === 'lifeguard' && this.abilityActive) {
-      this.currentSpeed *= 0.5 // Slow-mo Baywatch run
-    } else if (this.characterType === 'springBreaker' && this.abilityActive) {
-      this.currentSpeed *= 1.5 // YOLO mode
+    if (this.characterType === "lifeguard" && this.abilityActive) {
+      this.currentSpeed *= 0.5 // Slow-mo Baywatch run (but invincible!)
+    } else if (this.characterType === "springBreaker" && this.abilityActive) {
+      this.currentSpeed *= 1.5 // YOLO mode speed boost
+    } else if (this.characterType === "surferBro" && this.sharkProximitySpeedBoost && sharkDistance !== undefined) {
+      // Surfer gets speed boost when shark is nearby (riding the danger!)
+      if (sharkDistance < 250) {
+        this.currentSpeed *= 2.0 // 2x speed when shark is close
+      }
     }
 
     // Update velocity with some acceleration
     const acceleration = 0.2
-    this.vx += (inputX * this.currentSpeed - this.vx) * acceleration
-    this.vy += (inputY * this.currentSpeed - this.vy) * acceleration
+    this.vx += (processedInputX * this.currentSpeed - this.vx) * acceleration
+    this.vy += (processedInputY * this.currentSpeed - this.vy) * acceleration
 
     // Apply friction
     this.vx *= 0.9
@@ -243,12 +361,12 @@ export class Player {
         this.deactivateAbility()
       }
     }
-    
+
     // Update ability cooldown
     if (this.abilityCooldown > 0) {
       this.abilityCooldown -= delta
     }
-    
+
     // Update viewer shield
     if (this.viewerShield) {
       this.viewerShield.update(delta)
@@ -256,71 +374,182 @@ export class Player {
   }
 
   public activateAbility(): void {
-    if (this.abilityActive) return
+    // Check if ability is on cooldown
+    if (this.abilityCooldown > 0) {
+      return
+    }
+
+    // Check if ability is already active (except for some abilities)
+    if (this.abilityActive && this.characterType !== "marineBiologist") {
+      return
+    }
 
     this.abilityActive = true
-    this.abilityDuration = 3000 // 3 seconds
+    this.abilityDuration = 3000 // 3 seconds default
+    this.abilityCooldown = Player.ABILITY_COOLDOWN
 
     // Character-specific ability effects
     switch (this.characterType) {
-      case 'influencer':
-        // Going Live - creates viewer shields
-        console.log('Going Live! Viewer shields activated')
+      case "influencer":
+        // Going Live - creates viewer shields that block attacks
+        if (!this.viewerShield) {
+          this.viewerShield = new ViewerShield()
+          this.container.addChild(this.viewerShield.getContainer())
+        }
+        this.pendingAbilityEffect = {
+          type: "shield_active",
+          shields: this.viewerShield.getActiveShields()
+        }
+        this.abilityDuration = 10000 // Shields last 10 seconds
         break
-      case 'boomerDad':
-        // Dad Reflexes - can throw other players
-        console.log('Dad Reflexes activated!')
+
+      case "boomerDad":
+        // Dad Reflexes - throw items at shark (stuns for 1 sec)
+        // Creates a throwable projectile toward shark direction
+        this.pendingAbilityEffect = {
+          type: "stun_shark",
+          duration: 1000,
+          fact: "GET OFF MY BEACH!"
+        }
+        this.abilityDuration = 500 // Quick throw animation
         break
-      case 'surferBro':
-        // Can surf on shark's wake
-        console.log('Catching the wake!')
+
+      case "surferBro":
+        // Surf Wake - speed boost when shark is nearby
+        this.sharkProximitySpeedBoost = true
+        this.pendingAbilityEffect = { type: "speed_boost", multiplier: 2.0 }
+        this.abilityDuration = 5000 // 5 second boost window
         break
-      case 'lifeguard':
-        // Slow-mo Baywatch run
-        console.log('Baywatch mode activated!')
+
+      case "lifeguard":
+        // Baywatch Run - invincible during slow-mo
+        this.isInvincible = true
+        this.pendingAbilityEffect = { type: "invincible" }
+        this.abilityDuration = 3000 // 3 seconds of invincibility
         break
-      case 'marineBiologist':
-        // Bore shark with facts
-        console.log('Actually, did you know that sharks...')
+
+      case "marineBiologist":
+        // Bore with Facts - stun shark with educational content
+        this.currentFact = SHARK_FACTS[Math.floor(Math.random() * SHARK_FACTS.length)] ?? "Sharks are fascinating creatures!"
+        this.pendingAbilityEffect = {
+          type: "stun_shark",
+          duration: 2500,
+          fact: this.currentFact
+        }
+        this.abilityDuration = 2500
         break
-      case 'springBreaker':
-        // YOLO mode
-        console.log('YOLO MODE ACTIVATED!')
+
+      case "springBreaker":
+        // YOLO Mode - invincible but controls are drunk/reversed
+        this.isInvincible = true
+        this.hasDrunkControls = true
+        this.pendingAbilityEffect = { type: "drunk_controls" }
+        this.abilityDuration = 3000 // 3 seconds of chaos
         break
     }
 
-    this.drawCharacter()
+    this.drawEffects()
   }
 
   private deactivateAbility(): void {
     this.abilityActive = false
-    this.drawCharacter()
+    this.isInvincible = false
+    this.hasDrunkControls = false
+    this.sharkProximitySpeedBoost = false
+    this.pendingAbilityEffect = { type: "none" }
+
+    // Remove viewer shield visuals when ability ends
+    if (this.characterType === "influencer" && this.viewerShield) {
+      this.container.removeChild(this.viewerShield.getContainer())
+      this.viewerShield = null
+    }
+
+    this.drawEffects()
   }
 
-  public getPosition(): { x: number, y: number } {
+  // Called by GameCanvas to get and clear pending ability effects
+  public consumeAbilityEffect(): AbilityEffect {
+    const effect = this.pendingAbilityEffect
+    // Only consume one-time effects like stun_shark
+    if (effect.type === "stun_shark") {
+      this.pendingAbilityEffect = { type: "none" }
+    }
+    return effect
+  }
+
+  // Check if player is currently invincible
+  public isCurrentlyInvincible(): boolean {
+    return this.isInvincible
+  }
+
+  // Check if player has drunk controls active
+  public hasDrunkControlsActive(): boolean {
+    return this.hasDrunkControls
+  }
+
+  // Get current shark fact (for displaying)
+  public getCurrentFact(): string {
+    return this.currentFact
+  }
+
+  // Check if player has active viewer shield
+  public hasActiveShield(): boolean {
+    return this.viewerShield !== null && this.viewerShield.isActive()
+  }
+
+  // Try to absorb damage with shield, returns true if absorbed
+  public tryAbsorbWithShield(): boolean {
+    if (this.viewerShield && this.viewerShield.absorbHit()) {
+      return true
+    }
+    return false
+  }
+
+  // Get ability cooldown percentage (0-1)
+  public getAbilityCooldownPercent(): number {
+    return this.abilityCooldown / Player.ABILITY_COOLDOWN
+  }
+
+  // Check if ability is ready
+  public isAbilityReady(): boolean {
+    return this.abilityCooldown <= 0
+  }
+
+  public getPosition(): { x: number; y: number } {
     return { x: this.x, y: this.y }
   }
 
-  public getBounds(): { x: number, y: number, width: number, height: number } {
+  public getBounds(): { x: number; y: number; width: number; height: number } {
     return {
       x: this.x - 20,
       y: this.y - 20,
       width: 40,
-      height: 40
+      height: 40,
     }
   }
-  
-  public takeDamage(amount: number): void {
+
+  public takeDamage(amount: number): boolean {
+    // Check if invincible
+    if (this.isInvincible) {
+      return false // Damage blocked by invincibility
+    }
+
+    // Check if shield can absorb
+    if (this.tryAbsorbWithShield()) {
+      return false // Damage blocked by shield
+    }
+
     this.health = Math.max(0, this.health - amount)
     if (this.health <= 0) {
-      console.log('Player eliminated!')
+      console.log("Player eliminated!")
     }
+    return true // Damage was applied
   }
-  
+
   public getStats(): { health: number; stamina: number } {
     return {
       health: this.health,
-      stamina: this.stamina
+      stamina: this.stamina,
     }
   }
 }
