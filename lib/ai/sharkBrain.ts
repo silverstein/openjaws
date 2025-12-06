@@ -1,4 +1,5 @@
 import { generateText, streamText } from "ai"
+import { z } from "zod"
 import { determineAIMode, trackAPIUsage, updateCurrentMode } from "./apiTracking"
 import { aiConfig, models } from "./config"
 import {
@@ -7,6 +8,19 @@ import {
   streamMockSharkThoughts,
 } from "./mockResponses"
 import { responseCache } from "./responseCache"
+
+// Zod schema for validating AI shark decisions
+const SharkDecisionSchema = z.object({
+  action: z.enum(["hunt", "stalk", "ambush", "retreat", "taunt", "investigate"]),
+  targetPlayerId: z.string().optional(),
+  destination: z.object({
+    x: z.number(),
+    y: z.number(),
+  }),
+  innerMonologue: z.string(),
+  confidence: z.number().min(0).max(1),
+  reasoning: z.string(),
+})
 
 export type SharkPersonality =
   | "methodical" // Strategic hunter, patterns and patience
@@ -149,7 +163,18 @@ Respond with a JSON object containing:
       throw new Error("Invalid AI response structure")
     }
 
-    const decision = JSON.parse(result.text)
+    // Parse and validate AI response with Zod
+    const parsed = SharkDecisionSchema.safeParse(JSON.parse(result.text))
+
+    if (!parsed.success) {
+      console.error("[SharkBrain] Invalid AI response format:", parsed.error.format())
+      // Fallback to mock response on validation failure
+      const mockDecision = generateMockSharkDecision(context)
+      responseCache.cacheSharkDecision(context.sharkPersonality, context, mockDecision, 0.5)
+      return mockDecision
+    }
+
+    const decision = parsed.data
 
     // Cache the real AI response
     responseCache.cacheSharkDecision(context.sharkPersonality, context, decision, 0.9)
@@ -275,13 +300,22 @@ export function analyzePlayerPattern(
     }
   })
 
+  // Guard against division by zero
+  if (movements.length === 0) {
+    return "predictable"
+  }
+
   const avgSpeed =
-    movements.reduce((sum, m) => sum + Math.sqrt(m.dx * m.dx + m.dy * m.dy) / m.dt, 0) /
-    movements.length
+    movements.reduce((sum, m) => {
+      // Guard against zero time delta
+      const dt = m.dt === 0 ? 1 : m.dt
+      return sum + Math.sqrt(m.dx * m.dx + m.dy * m.dy) / dt
+    }, 0) / movements.length
 
   const speedVariance =
     movements.reduce((sum, m) => {
-      const speed = Math.sqrt(m.dx * m.dx + m.dy * m.dy) / m.dt
+      const dt = m.dt === 0 ? 1 : m.dt
+      const speed = Math.sqrt(m.dx * m.dx + m.dy * m.dy) / dt
       return sum + (speed - avgSpeed) ** 2
     }, 0) / movements.length
 

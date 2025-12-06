@@ -99,6 +99,7 @@ export function GameCanvas() {
   const heldBeachItemRef = useRef<BeachItem | null>(null)
   const thrownItemsRef = useRef<ThrownItem[]>([])
   const deepWaterIndicatorRef = useRef<DeepWaterIndicator | null>(null)
+  const aiAbortControllerRef = useRef<AbortController | null>(null)
 
   // Player economy state
   const [playerPoints, setPlayerPoints] = useState(100) // Start with some points
@@ -1053,9 +1054,7 @@ export function GameCanvas() {
 
         // Update thrown items and check for collisions
         if (shark && thrownItemsRef.current.length > 0) {
-          const deadItems: ThrownItem[] = []
-
-          for (const item of thrownItemsRef.current) {
+          thrownItemsRef.current = thrownItemsRef.current.filter(item => {
             item.update(delta)
 
             // Check collision with shark
@@ -1111,44 +1110,29 @@ export function GameCanvas() {
               playSound("bite", { volume: 0.6 })
             }
 
-            // Collect dead items
+            // Remove dead items - filter out and destroy
             if (!item.isAlive()) {
-              deadItems.push(item)
-            }
-          }
-
-          // Remove dead thrown items
-          for (const item of deadItems) {
-            const index = thrownItemsRef.current.indexOf(item)
-            if (index > -1) {
-              thrownItemsRef.current.splice(index, 1)
               item.destroy()
+              return false
             }
-          }
+            return true
+          })
         }
 
         // Update bait zones and check for expired ones
         if (baitZonesRef.current.length > 0) {
-          const expiredZones: BaitZone[] = []
-
-          for (const zone of baitZonesRef.current) {
+          baitZonesRef.current = baitZonesRef.current.filter(zone => {
             zone.update(delta)
 
+            // Remove expired zones - filter out and cleanup
             if (!zone.isActive()) {
-              expiredZones.push(zone)
-            }
-          }
-
-          // Remove expired bait zones
-          for (const zone of expiredZones) {
-            const index = baitZonesRef.current.indexOf(zone)
-            if (index > -1) {
-              baitZonesRef.current.splice(index, 1)
               if (entityLayerRef.current) {
                 entityLayerRef.current.removeChild(zone.container)
               }
+              return false
             }
-          }
+            return true
+          })
 
           // Have shark check for bait
           if (shark && baitZonesRef.current.length > 0) {
@@ -1166,9 +1150,7 @@ export function GameCanvas() {
 
         // Update harpoons and check for collisions
         if (shark && harpoonsRef.current.length > 0) {
-          const deadHarpoons: Harpoon[] = []
-
-          for (const harpoon of harpoonsRef.current) {
+          harpoonsRef.current = harpoonsRef.current.filter(harpoon => {
             harpoon.update(delta)
 
             // Check collision with shark
@@ -1297,20 +1279,13 @@ export function GameCanvas() {
               playSound("bite", { volume: 0.8 })
             }
 
-            // Collect dead harpoons
+            // Remove dead harpoons - filter out and destroy
             if (!harpoon.isAlive()) {
-              deadHarpoons.push(harpoon)
-            }
-          }
-
-          // Remove dead harpoons
-          for (const harpoon of deadHarpoons) {
-            const index = harpoonsRef.current.indexOf(harpoon)
-            if (index > -1) {
-              harpoonsRef.current.splice(index, 1)
               harpoon.destroy()
+              return false
             }
-          }
+            return true
+          })
         }
 
         // Update player movement
@@ -1762,11 +1737,18 @@ export function GameCanvas() {
               memories: [],
             }
 
+            // Cancel any previous AI request to prevent race conditions
+            if (aiAbortControllerRef.current) {
+              aiAbortControllerRef.current.abort()
+            }
+            aiAbortControllerRef.current = new AbortController()
+
             // Make AI decision via API
             fetch("/api/shark-brain", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ action: "decide", context }),
+              signal: aiAbortControllerRef.current.signal,
             })
               .then((res) => res.json())
               .then((decision) => {
@@ -1779,6 +1761,10 @@ export function GameCanvas() {
                 }
               })
               .catch((err) => {
+                // Don't log AbortError as it's intentional when cancelling stale requests
+                if (err.name === "AbortError") {
+                  return
+                }
                 console.log("AI decision failed, using fallback:", err)
                 setIsAIThinking(false)
                 // Fallback to simple thoughts
@@ -2022,6 +2008,12 @@ export function GameCanvas() {
     })
 
     return () => {
+      // Cancel any pending AI requests
+      if (aiAbortControllerRef.current) {
+        aiAbortControllerRef.current.abort()
+        aiAbortControllerRef.current = null
+      }
+
       // Call the cleanup function from initGame if it exists
       if (cleanupGame) {
         cleanupGame()
@@ -2358,6 +2350,13 @@ export function GameCanvas() {
   )
 }
 
-function checkCollision(a: any, b: any): boolean {
+interface Bounds {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+function checkCollision(a: Bounds, b: Bounds): boolean {
   return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y
 }

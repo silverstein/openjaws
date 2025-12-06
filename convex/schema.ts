@@ -26,6 +26,7 @@ export default defineSchema({
         type: v.string(), // "influencer_invasion", "documentary_crew", etc
         startTime: v.number(),
         duration: v.number(),
+        // Flexible event data - varies by event type (e.g., { viewerCount: number } for influencer invasion)
         data: v.any(),
       })
     ),
@@ -127,6 +128,7 @@ export default defineSchema({
     patterns: v.array(
       v.object({
         type: v.string(), // "hiding_spot", "escape_route", "ability_timing"
+        // Flexible pattern data - varies by pattern type (e.g., { x, y } for hiding spots, { ability: string, timing: number } for ability timing)
         data: v.any(),
         confidence: v.number(), // 0-1
       })
@@ -166,6 +168,7 @@ export default defineSchema({
 
     action: v.object({
       type: v.string(), // "move", "ability", "objective", "emote"
+      // Flexible action data - varies by action type (e.g., { direction: string } for move, { abilityId: string } for ability)
       data: v.any(),
       position: v.object({
         x: v.number(),
@@ -214,6 +217,7 @@ export default defineSchema({
         radius: v.number(),
       })
     ),
+    // Flexible requirements - varies by objective type (e.g., { minDistance: number } for selfie, { sandcastleHeight: number } for sandcastle)
     requirements: v.any(), // Flexible for different objective types
 
     // Status
@@ -293,7 +297,7 @@ export default defineSchema({
     title: v.string(),
     description: v.string(),
 
-    // Event configuration
+    // Event configuration - varies by event type (e.g., { duration: number, intensity: number } for weather events)
     config: v.any(), // Flexible for different event types
 
     // Timing
@@ -305,6 +309,7 @@ export default defineSchema({
       v.object({
         target: v.union(v.literal("all"), v.literal("swimmers"), v.literal("shark")),
         type: v.string(),
+        // Flexible effect value - varies by effect type (e.g., number for speed modifier, boolean for visibility toggle)
         value: v.any(),
       })
     ),
@@ -336,6 +341,7 @@ export default defineSchema({
     trigger: v.object({
       type: v.string(), // "shark_attack", "objective_complete", etc
       playerId: v.optional(v.id("players")),
+      // Flexible trigger data - varies by trigger type (e.g., { distance: number } for close call, { objectiveId: string } for completion)
       data: v.any(),
     }),
 

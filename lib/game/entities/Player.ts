@@ -21,6 +21,40 @@ export type AbilityEffect =
   | { type: "drunk_controls" }
   | { type: "throw_item"; item: string; damage: number }
 
+/** Player gameplay constants - extracted for maintainability */
+export const PLAYER_CONSTANTS = {
+  STAMINA: {
+    MAX: 100,
+    DRAIN_SWIMMING_MOVING: 5,     // points per second
+    DRAIN_SWIMMING_IDLE: 2,       // points per second
+    REGEN_ON_BEACH: 10,           // points per second
+    DROWNING_DAMAGE: 5,           // damage per second at 0 stamina
+    LOW_WARNING_THRESHOLD: 25,    // show warning below this
+  },
+  SPEED: {
+    DROWNING_MULTIPLIER: 0.25,
+    LOW_STAMINA_MIN: 0.5,
+    LIFEGUARD_SLOWMO: 0.5,
+    SPRING_BREAK_BOOST: 1.5,
+    SURFER_BRO_SHARK_BOOST: 2.0,
+    SURFER_BRO_PROXIMITY: 250,    // distance for boost activation
+  },
+  MOVEMENT: {
+    ACCELERATION: 0.2,
+    FRICTION: 0.9,
+  },
+  ABILITY: {
+    COOLDOWN_MS: 10000,
+    DEFAULT_DURATION_MS: 3000,
+    INFLUENCER_DURATION_MS: 10000,
+    BOOMER_DAD_DURATION_MS: 500,
+    SURFER_BRO_DURATION_MS: 5000,
+    LIFEGUARD_DURATION_MS: 3000,
+    MARINE_BIO_DURATION_MS: 2500,
+    SPRING_BREAK_DURATION_MS: 3000,
+  },
+} as const
+
 // Shark facts for Marine Biologist
 const SHARK_FACTS = [
   "Sharks have been around for 450 million years!",
@@ -119,9 +153,6 @@ export class Player {
   private sharkProximitySpeedBoost: boolean = false
   private currentFact: string = ""
 
-  // Cooldown constants (in ms)
-  private static readonly ABILITY_COOLDOWN = 10000 // 10 seconds between uses
-
   constructor(x: number, y: number, type: CharacterType = "influencer", userId?: string) {
     this.x = x
     this.y = y
@@ -209,7 +240,7 @@ export class Player {
       }
 
       // Drowning indicator at low stamina
-      if (this.stamina < 25) {
+      if (this.stamina < PLAYER_CONSTANTS.STAMINA.LOW_WARNING_THRESHOLD) {
         // Pulsing red circle
         const pulseAlpha = 0.3 + Math.sin(Date.now() * 0.01) * 0.2
         this.effectsGraphics.circle(0, 0, 22)
@@ -296,50 +327,49 @@ export class Player {
     if (this.isInWater) {
       // In water: stamina depletes
       if (isMoving) {
-        this.stamina = Math.max(0, this.stamina - delta * 0.083) // 5 points/second at 60fps
+        this.stamina = Math.max(0, this.stamina - delta * (PLAYER_CONSTANTS.STAMINA.DRAIN_SWIMMING_MOVING / 60))
       } else {
-        this.stamina = Math.max(0, this.stamina - delta * 0.033) // 2 points/second when stationary
+        this.stamina = Math.max(0, this.stamina - delta * (PLAYER_CONSTANTS.STAMINA.DRAIN_SWIMMING_IDLE / 60))
       }
 
       // Drowning damage at 0 stamina
       if (this.stamina === 0) {
-        this.takeDamage(delta * 0.083) // 5 damage/second
+        this.takeDamage(delta * (PLAYER_CONSTANTS.STAMINA.DROWNING_DAMAGE / 60))
       }
     } else {
       // On beach: stamina regenerates
-      this.stamina = Math.min(100, this.stamina + delta * 0.167) // 10 points/second
+      this.stamina = Math.min(PLAYER_CONSTANTS.STAMINA.MAX, this.stamina + delta * (PLAYER_CONSTANTS.STAMINA.REGEN_ON_BEACH / 60))
     }
 
     // Stamina affects speed (more gradual)
-    const staminaSpeedModifier = this.stamina / 100
+    const staminaSpeedModifier = this.stamina / PLAYER_CONSTANTS.STAMINA.MAX
     if (this.stamina === 0 && this.isInWater) {
       // Drowning: very slow movement
-      this.currentSpeed *= 0.25
+      this.currentSpeed *= PLAYER_CONSTANTS.SPEED.DROWNING_MULTIPLIER
     } else {
       // Normal stamina-based speed reduction
-      this.currentSpeed *= 0.5 + 0.5 * staminaSpeedModifier
+      this.currentSpeed *= PLAYER_CONSTANTS.SPEED.LOW_STAMINA_MIN + (1 - PLAYER_CONSTANTS.SPEED.LOW_STAMINA_MIN) * staminaSpeedModifier
     }
 
     // Apply special ability speed modifiers
     if (this.characterType === "lifeguard" && this.abilityActive) {
-      this.currentSpeed *= 0.5 // Slow-mo Baywatch run (but invincible!)
+      this.currentSpeed *= PLAYER_CONSTANTS.SPEED.LIFEGUARD_SLOWMO
     } else if (this.characterType === "springBreaker" && this.abilityActive) {
-      this.currentSpeed *= 1.5 // YOLO mode speed boost
+      this.currentSpeed *= PLAYER_CONSTANTS.SPEED.SPRING_BREAK_BOOST
     } else if (this.characterType === "surferBro" && this.sharkProximitySpeedBoost && sharkDistance !== undefined) {
       // Surfer gets speed boost when shark is nearby (riding the danger!)
-      if (sharkDistance < 250) {
-        this.currentSpeed *= 2.0 // 2x speed when shark is close
+      if (sharkDistance < PLAYER_CONSTANTS.SPEED.SURFER_BRO_PROXIMITY) {
+        this.currentSpeed *= PLAYER_CONSTANTS.SPEED.SURFER_BRO_SHARK_BOOST
       }
     }
 
     // Update velocity with some acceleration
-    const acceleration = 0.2
-    this.vx += (processedInputX * this.currentSpeed - this.vx) * acceleration
-    this.vy += (processedInputY * this.currentSpeed - this.vy) * acceleration
+    this.vx += (processedInputX * this.currentSpeed - this.vx) * PLAYER_CONSTANTS.MOVEMENT.ACCELERATION
+    this.vy += (processedInputY * this.currentSpeed - this.vy) * PLAYER_CONSTANTS.MOVEMENT.ACCELERATION
 
     // Apply friction
-    this.vx *= 0.9
-    this.vy *= 0.9
+    this.vx *= PLAYER_CONSTANTS.MOVEMENT.FRICTION
+    this.vy *= PLAYER_CONSTANTS.MOVEMENT.FRICTION
 
     // Update position
     this.x += this.vx
@@ -385,8 +415,8 @@ export class Player {
     }
 
     this.abilityActive = true
-    this.abilityDuration = 3000 // 3 seconds default
-    this.abilityCooldown = Player.ABILITY_COOLDOWN
+    this.abilityDuration = PLAYER_CONSTANTS.ABILITY.DEFAULT_DURATION_MS
+    this.abilityCooldown = PLAYER_CONSTANTS.ABILITY.COOLDOWN_MS
 
     // Character-specific ability effects
     switch (this.characterType) {
@@ -400,7 +430,7 @@ export class Player {
           type: "shield_active",
           shields: this.viewerShield.getActiveShields()
         }
-        this.abilityDuration = 10000 // Shields last 10 seconds
+        this.abilityDuration = PLAYER_CONSTANTS.ABILITY.INFLUENCER_DURATION_MS
         break
 
       case "boomerDad":
@@ -411,21 +441,21 @@ export class Player {
           duration: 1000,
           fact: "GET OFF MY BEACH!"
         }
-        this.abilityDuration = 500 // Quick throw animation
+        this.abilityDuration = PLAYER_CONSTANTS.ABILITY.BOOMER_DAD_DURATION_MS
         break
 
       case "surferBro":
         // Surf Wake - speed boost when shark is nearby
         this.sharkProximitySpeedBoost = true
-        this.pendingAbilityEffect = { type: "speed_boost", multiplier: 2.0 }
-        this.abilityDuration = 5000 // 5 second boost window
+        this.pendingAbilityEffect = { type: "speed_boost", multiplier: PLAYER_CONSTANTS.SPEED.SURFER_BRO_SHARK_BOOST }
+        this.abilityDuration = PLAYER_CONSTANTS.ABILITY.SURFER_BRO_DURATION_MS
         break
 
       case "lifeguard":
         // Baywatch Run - invincible during slow-mo
         this.isInvincible = true
         this.pendingAbilityEffect = { type: "invincible" }
-        this.abilityDuration = 3000 // 3 seconds of invincibility
+        this.abilityDuration = PLAYER_CONSTANTS.ABILITY.LIFEGUARD_DURATION_MS
         break
 
       case "marineBiologist":
@@ -433,10 +463,10 @@ export class Player {
         this.currentFact = SHARK_FACTS[Math.floor(Math.random() * SHARK_FACTS.length)] ?? "Sharks are fascinating creatures!"
         this.pendingAbilityEffect = {
           type: "stun_shark",
-          duration: 2500,
+          duration: PLAYER_CONSTANTS.ABILITY.MARINE_BIO_DURATION_MS,
           fact: this.currentFact
         }
-        this.abilityDuration = 2500
+        this.abilityDuration = PLAYER_CONSTANTS.ABILITY.MARINE_BIO_DURATION_MS
         break
 
       case "springBreaker":
@@ -444,7 +474,7 @@ export class Player {
         this.isInvincible = true
         this.hasDrunkControls = true
         this.pendingAbilityEffect = { type: "drunk_controls" }
-        this.abilityDuration = 3000 // 3 seconds of chaos
+        this.abilityDuration = PLAYER_CONSTANTS.ABILITY.SPRING_BREAK_DURATION_MS
         break
     }
 
@@ -507,7 +537,7 @@ export class Player {
 
   // Get ability cooldown percentage (0-1)
   public getAbilityCooldownPercent(): number {
-    return this.abilityCooldown / Player.ABILITY_COOLDOWN
+    return this.abilityCooldown / PLAYER_CONSTANTS.ABILITY.COOLDOWN_MS
   }
 
   // Check if ability is ready

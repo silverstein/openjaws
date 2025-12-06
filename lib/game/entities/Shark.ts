@@ -7,6 +7,15 @@ import { assetLoader } from "../AssetLoader"
 // Shark AI states
 export type SharkState = "patrol" | "hunting" | "attacking" | "stunned" | "eating"
 
+// Game state interface for Shark AI
+export interface GameState {
+  timeRemaining?: number
+  waterLevel?: string
+  activeEvent?: { type: string; startTime: number; duration: number }
+  playerCount?: number
+  objectivesActive?: number
+}
+
 // AI Decision type
 export type AIDecision = {
   action: "hunt" | "patrol" | "ambush" | "retreat" | "taunt"
@@ -227,7 +236,7 @@ export class Shark {
     }
   }
 
-  public update(delta: number, player: Player | null, gameState?: any): void {
+  public update(delta: number, player: Player | null, gameState?: GameState): void {
     // Update visual effects
     this.drawEffects()
 
@@ -452,7 +461,7 @@ export class Shark {
     this.updateAIThought(`Feeling ${personality}...`)
   }
 
-  private async pollAIDecision(player: Player | null, gameState?: any): Promise<void> {
+  private async pollAIDecision(player: Player | null, gameState?: GameState): Promise<void> {
     if (!this.aiController) {
       return
     }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { AudioManager, type AudioSettings, type SoundEffect } from "@/lib/game/AudioManager"
 
 /**
@@ -33,7 +33,7 @@ export function useGameAudio() {
   /**
    * Initialize audio context (requires user interaction)
    */
-  const initializeAudio = async (): Promise<boolean> => {
+  const initializeAudio = useCallback(async (): Promise<boolean> => {
     if (!audioManagerRef.current) {
       return false
     }
@@ -46,12 +46,12 @@ export function useGameAudio() {
       await audioManagerRef.current.preloadAudio()
     }
     return success
-  }
+  }, [])
 
   /**
    * Play a sound effect
    */
-  const playSound = (
+  const playSound = useCallback((
     sound: SoundEffect,
     options?: { loop?: boolean; volume?: number; fadeIn?: number }
   ): string | null => {
@@ -59,55 +59,55 @@ export function useGameAudio() {
       return null
     }
     return audioManagerRef.current.play(sound, options)
-  }
+  }, [])
 
   /**
    * Stop a specific sound by ID
    */
-  const stopSound = (id: string, fadeOut?: number): void => {
+  const stopSound = useCallback((id: string, fadeOut?: number): void => {
     audioManagerRef.current?.stop(id, fadeOut)
-  }
+  }, [])
 
   /**
    * Stop all sounds of a specific type
    */
-  const stopAllSounds = (sound?: SoundEffect): void => {
+  const stopAllSounds = useCallback((sound?: SoundEffect): void => {
     audioManagerRef.current?.stopAll(sound)
-  }
+  }, [])
 
   /**
    * Set volume for master, music, or sfx
    */
-  const setVolume = (type: "master" | "music" | "sfx", value: number): void => {
+  const setVolume = useCallback((type: "master" | "music" | "sfx", value: number): void => {
     if (!audioManagerRef.current) {
       return
     }
     audioManagerRef.current.setVolume(type, value)
     setSettings(audioManagerRef.current.getSettings())
-  }
+  }, [])
 
   /**
    * Toggle mute
    */
-  const toggleMute = (): boolean => {
+  const toggleMute = useCallback((): boolean => {
     if (!audioManagerRef.current) {
       return false
     }
     const newMutedState = audioManagerRef.current.toggleMute()
     setSettings(audioManagerRef.current.getSettings())
     return newMutedState
-  }
+  }, [])
 
   /**
    * Set mute state directly
    */
-  const setMuted = (muted: boolean): void => {
+  const setMuted = useCallback((muted: boolean): void => {
     if (!audioManagerRef.current) {
       return
     }
     audioManagerRef.current.setMuted(muted)
     setSettings(audioManagerRef.current.getSettings())
-  }
+  }, [])
 
   return {
     initialized,

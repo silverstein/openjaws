@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { z } from "zod"
 import { getAPIUsageStats } from "@/lib/ai/apiTracking"
 import {
   generateNPCGreeting,
@@ -6,15 +7,68 @@ import {
   type NPCContext,
   streamNPCResponse,
 } from "@/lib/ai/npcDialogue"
+import { getClientIP, rateLimit } from "@/lib/rateLimit"
+
+// Input validation schemas
+const NPCTypeSchema = z.enum([
+  "beach_vendor",
+  "lifeguard",
+  "tourist",
+  "surfer",
+  "scientist",
+  "reporter",
+  "old_timer",
+  "fish_vendor",
+])
+
+const NPCContextSchema = z.object({
+  npcType: NPCTypeSchema,
+  npcName: z.string().min(1).max(50),
+  playerName: z.string().min(1).max(50),
+  currentEvent: z.enum(["shark_nearby", "player_hurt", "calm", "storm", "shark_attack"]).optional(),
+  recentSharkSighting: z.boolean().optional(),
+  timeOfDay: z.enum(["dawn", "day", "dusk", "night"]),
+  previousMessages: z.array(z.string().max(500)).max(50).optional(),
+})
+
+const ChatRequestSchema = z.object({
+  message: z.string().min(1).max(500).trim(),
+  context: NPCContextSchema,
+})
 
 export async function POST(request: NextRequest) {
   try {
-    const { message, context } = await request.json()
+    // Rate limiting
+    const clientIP = getClientIP(request)
+    const rateLimitResult = rateLimit(clientIP, 30, 60000)
 
-    if (!context || !message) {
-      return NextResponse.json({ error: "Message and context required" }, { status: 400 })
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { error: "Too many requests", retryAfter: Math.ceil(rateLimitResult.resetIn / 1000) },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": Math.ceil(rateLimitResult.resetIn / 1000).toString(),
+            "X-RateLimit-Limit": "30",
+            "X-RateLimit-Remaining": "0",
+            "X-RateLimit-Reset": new Date(Date.now() + rateLimitResult.resetIn).toISOString(),
+          },
+        }
+      )
     }
 
+    const body = await request.json()
+
+    // Validate request body
+    const parseResult = ChatRequestSchema.safeParse(body)
+    if (!parseResult.success) {
+      return NextResponse.json(
+        { error: "Invalid request", details: parseResult.error.format() },
+        { status: 400 }
+      )
+    }
+
+    const { message, context } = parseResult.data
     const npcContext = context as NPCContext
 
     // Stream NPC response
@@ -40,6 +94,9 @@ export async function POST(request: NextRequest) {
         Connection: "keep-alive",
         "X-AI-Mode": stats.currentMode,
         "X-API-Calls-Remaining": stats.remaining.toString(),
+        "X-RateLimit-Limit": "30",
+        "X-RateLimit-Remaining": rateLimitResult.remaining.toString(),
+        "X-RateLimit-Reset": new Date(Date.now() + rateLimitResult.resetIn).toISOString(),
       },
     })
   } catch (error) {
@@ -50,6 +107,25 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    // Rate limiting
+    const clientIP = getClientIP(request)
+    const rateLimitResult = rateLimit(clientIP, 30, 60000)
+
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { error: "Too many requests", retryAfter: Math.ceil(rateLimitResult.resetIn / 1000) },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": Math.ceil(rateLimitResult.resetIn / 1000).toString(),
+            "X-RateLimit-Limit": "30",
+            "X-RateLimit-Remaining": "0",
+            "X-RateLimit-Reset": new Date(Date.now() + rateLimitResult.resetIn).toISOString(),
+          },
+        }
+      )
+    }
+
     const { searchParams } = new URL(request.url)
     const action = searchParams.get("action")
 
@@ -69,6 +145,9 @@ export async function GET(request: NextRequest) {
           headers: {
             "X-AI-Mode": stats.currentMode,
             "X-API-Calls-Remaining": stats.remaining.toString(),
+            "X-RateLimit-Limit": "30",
+            "X-RateLimit-Remaining": rateLimitResult.remaining.toString(),
+            "X-RateLimit-Reset": new Date(Date.now() + rateLimitResult.resetIn).toISOString(),
           },
         }
       )

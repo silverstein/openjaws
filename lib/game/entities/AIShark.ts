@@ -1,6 +1,6 @@
 import type { GameContext, SharkDecision, SharkMemory, SharkPersonality } from "@/lib/ai/sharkBrain"
 import type { Player } from "./Player"
-import { Shark } from "./Shark"
+import { Shark, type GameState } from "./Shark"
 
 export interface AISharkConfig {
   personality: SharkPersonality
@@ -29,17 +29,17 @@ export class AIShark extends Shark {
     this.memoryEnabled = config.memoryEnabled ?? true
   }
 
-  public override update(delta: number, player: Player | null, allPlayers?: Player[], _gameState?: any): void {
+  public override update(delta: number, player: Player | null, gameState?: GameState): void {
     // Update decision timer
     this.decisionTimer += delta
 
     // Make AI decision if interval has passed
     if (this.decisionTimer >= this.decisionInterval && this.lastDecision) {
       this.decisionTimer = 0
-      this.executeAIDecision(delta, player, allPlayers)
+      this.executeAIDecision(delta, player)
     } else {
       // Use base shark behavior if no AI decision
-      super.update(delta, player)
+      super.update(delta, player, gameState)
     }
 
     // Check for memory-triggering events
@@ -65,19 +65,16 @@ export class AIShark extends Shark {
 
   private executeAIDecision(
     delta: number,
-    currentPlayer: Player | null,
-    allPlayers?: Player[]
+    currentPlayer: Player | null
   ): void {
     if (!this.lastDecision) {
       return
     }
 
-    const { action, targetPlayerId, destination } = this.lastDecision
+    const { action, destination } = this.lastDecision
 
-    // Find target player
-    if (targetPlayerId && allPlayers) {
-      this.currentTarget = allPlayers.find((p) => p.id === targetPlayerId) || null
-    }
+    // Use current player as target (in single-player context)
+    this.currentTarget = currentPlayer
 
     // Execute action based on AI decision
     switch (action) {
