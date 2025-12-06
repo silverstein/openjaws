@@ -1526,8 +1526,9 @@ export function GameCanvas() {
             gameOverBg.fill({ color: 0x000000, alpha: 0.8 })
             app.stage.addChild(gameOverBg)
 
-            const gameOverText = new Text("🦈 GAME OVER 🦈\n\nThe shark got you!\n\nPress ESC to return to lobby", {
-                fontSize: 40,
+            const exitInstruction = isTouchDevice ? "Tap EXIT to return to lobby" : "Press ESC to return to lobby"
+            const gameOverText = new Text(`🦈 GAME OVER 🦈\n\nThe shark got you!\n\n${exitInstruction}`, {
+                fontSize: isTouchDevice ? 32 : 40,
                 fill: 0xff0000,
                 align: "center",
                 fontWeight: "bold",
@@ -2341,11 +2342,16 @@ export function GameCanvas() {
           </div>
         </div>
       )}
+      {/* Mobile exit button */}
       {isTouchDevice && (
-        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-black/40 text-white px-4 py-2 rounded-lg text-xs backdrop-blur-sm text-center">
-          <div className="font-medium">Touch Controls Active</div>
-          <div className="text-white/60 mt-1">Use joystick to move, buttons for actions</div>
-        </div>
+        <button
+          type="button"
+          onClick={() => { window.location.href = "/lobby" }}
+          className="absolute top-2 left-2 bg-black/60 backdrop-blur-sm text-white px-3 py-2 rounded-lg text-xs font-medium flex items-center gap-1.5 active:scale-95 transition-transform z-20"
+          style={{ paddingTop: "max(8px, env(safe-area-inset-top))" }}
+        >
+          ← Exit
+        </button>
       )}
     </div>
   )

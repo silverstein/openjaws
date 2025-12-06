@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation"
 import { Player } from "@/lib/game/entities/Player"
 import { Shark } from "@/lib/game/entities/Shark"
 import { createWaterShader } from "@/lib/game/shaders/WaterShader"
+import { useIsTouchDevice } from "@/hooks/useIsTouchDevice"
 
 const COLORS = {
   hotPink: 0xff6b6b,
@@ -33,6 +34,7 @@ export function MultiplayerGameCanvas({ gameId, userId, playerName }: Multiplaye
   const router = useRouter()
 
   const [joined, setJoined] = useState(false)
+  const isTouchDevice = useIsTouchDevice()
 
   const {
     playerId,
@@ -346,9 +348,20 @@ export function MultiplayerGameCanvas({ gameId, userId, playerName }: Multiplaye
         </div>
       </div>
 
-      <div className="absolute bottom-4 left-4 text-white text-sm bg-black/50 backdrop-blur-sm rounded-lg p-2">
-        Press ESC to leave game
-      </div>
+      {isTouchDevice ? (
+        <button
+          type="button"
+          onClick={() => router.push("/lobby")}
+          className="absolute top-2 left-2 bg-black/60 backdrop-blur-sm text-white px-3 py-2 rounded-lg text-xs font-medium flex items-center gap-1.5 active:scale-95 transition-transform z-20"
+          style={{ paddingTop: "max(8px, env(safe-area-inset-top))" }}
+        >
+          ← Exit
+        </button>
+      ) : (
+        <div className="absolute bottom-4 left-4 text-white text-sm bg-black/50 backdrop-blur-sm rounded-lg p-2">
+          Press ESC to leave game
+        </div>
+      )}
     </div>
   )
 }
