@@ -1,6 +1,6 @@
 {
-  "version": "1.0.0",
-  "generated": "2025-12-06T02:45:25.354Z",
+  "version": "1.1.0",
+  "generated": "2025-12-06T06:20:00.000Z",
   "sounds": {
     "ocean_ambience": {
       "file": "ocean_ambience.mp3",
@@ -41,6 +41,54 @@
     "game_over": {
       "file": "game_over.mp3",
       "description": "Game over dramatic sound",
+      "type": "sfx",
+      "placeholder": true
+    },
+    "item_pickup": {
+      "file": "item_pickup.mp3",
+      "description": "Quick whoosh/grab sound when picking up beach items",
+      "type": "sfx",
+      "placeholder": true
+    },
+    "item_throw": {
+      "file": "item_throw.mp3",
+      "description": "Throwing swoosh sound for tossed items",
+      "type": "sfx",
+      "placeholder": true
+    },
+    "combo_hit": {
+      "file": "combo_hit.mp3",
+      "description": "Power-up chime for 2x combo damage hits",
+      "type": "sfx",
+      "placeholder": true
+    },
+    "orange_buff_activate": {
+      "file": "orange_buff_activate.mp3",
+      "description": "Citrus pop/sparkle when orange buff activates",
+      "type": "sfx",
+      "placeholder": true
+    },
+    "orange_buff_expire": {
+      "file": "orange_buff_expire.mp3",
+      "description": "Deflate/fade sound when orange buff expires",
+      "type": "sfx",
+      "placeholder": true
+    },
+    "secret_room_unlock": {
+      "file": "secret_room_unlock.mp3",
+      "description": "Discovery fanfare when secret room unlocks",
+      "type": "sfx",
+      "placeholder": true
+    },
+    "treasure_collect": {
+      "file": "treasure_collect.mp3",
+      "description": "Coin/gem sound when collecting treasure",
+      "type": "sfx",
+      "placeholder": true
+    },
+    "victory_fanfare": {
+      "file": "victory_fanfare.mp3",
+      "description": "Celebratory fanfare when shark is defeated",
       "type": "sfx",
       "placeholder": true
     }

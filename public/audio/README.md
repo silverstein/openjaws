@@ -32,6 +32,38 @@ This directory contains audio files for the game.
 **Description**: Game over dramatic sound
 **Source**: Dramatic sting or chord
 
+### item_pickup.mp3
+**Description**: Quick whoosh/grab sound when picking up beach items
+**Source**: Whoosh or grab sound effect
+
+### item_throw.mp3
+**Description**: Throwing swoosh sound for tossed items
+**Source**: Throwing/swoosh sound
+
+### combo_hit.mp3
+**Description**: Power-up chime for 2x combo damage hits
+**Source**: Satisfying combo hit sound
+
+### orange_buff_activate.mp3
+**Description**: Citrus pop/sparkle when orange buff activates
+**Source**: Sparkle or power-up activation
+
+### orange_buff_expire.mp3
+**Description**: Deflate/fade sound when orange buff expires
+**Source**: Deflate or deactivation sound
+
+### secret_room_unlock.mp3
+**Description**: Discovery fanfare when secret room unlocks
+**Source**: Magical unlock or discovery fanfare
+
+### treasure_collect.mp3
+**Description**: Coin/gem sound when collecting treasure
+**Source**: Coin collect or gem pickup sound
+
+### victory_fanfare.mp3
+**Description**: Celebratory fanfare when shark is defeated
+**Source**: Victory/celebration music sting
+
 
 ## How to Add Real Audio
 

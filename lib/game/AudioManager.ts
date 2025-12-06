@@ -12,6 +12,15 @@ export type SoundEffect =
   | "ability_activate"
   | "selfie_camera"
   | "game_over"
+  // New Track 10 sounds
+  | "item_pickup"
+  | "item_throw"
+  | "combo_hit"
+  | "orange_buff_activate"
+  | "orange_buff_expire"
+  | "secret_room_unlock"
+  | "treasure_collect"
+  | "victory_fanfare"
 
 export interface AudioSettings {
   masterVolume: number // 0-1
@@ -109,6 +118,15 @@ export class AudioManager {
       ability_activate: "/audio/ability_activate.mp3",
       selfie_camera: "/audio/selfie_camera.mp3",
       game_over: "/audio/game_over.mp3",
+      // New Track 10 sounds
+      item_pickup: "/audio/item_pickup.mp3",
+      item_throw: "/audio/item_throw.mp3",
+      combo_hit: "/audio/combo_hit.mp3",
+      orange_buff_activate: "/audio/orange_buff_activate.mp3",
+      orange_buff_expire: "/audio/orange_buff_expire.mp3",
+      secret_room_unlock: "/audio/secret_room_unlock.mp3",
+      treasure_collect: "/audio/treasure_collect.mp3",
+      victory_fanfare: "/audio/victory_fanfare.mp3",
     }
 
     const loadPromises = Object.entries(soundFiles).map(async ([key, url]) => {

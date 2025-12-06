@@ -93,6 +93,7 @@ export function GameCanvas() {
   const beachHouseRef = useRef<BeachHouse | null>(null)
   const secretRoomRef = useRef<SecretRoom | null>(null)
   const orangeBuffRef = useRef<OrangeBuff | null>(null)
+  const orangeBuffWasActiveRef = useRef<boolean>(false)
   const deepWaterZoneRef = useRef<DeepWaterZone | null>(null)
   const beachItemSpawnerRef = useRef<BeachItemSpawner | null>(null)
   const heldBeachItemRef = useRef<BeachItem | null>(null)
@@ -420,7 +421,7 @@ export function GameCanvas() {
                 )
                 harpoonsRef.current.push(harpoon)
                 entityLayer.addChild(harpoon.container)
-                playSound("ability_activate", { volume: 0.7 })
+                playSound("item_throw", { volume: 0.7 })
                 console.log("Harpoon fired!")
                 firedHarpoon = true
                 break
@@ -479,7 +480,7 @@ export function GameCanvas() {
             const taken = secretRoomRef.current.takeOrange(playerId)
             if (taken && orangeBuffRef.current) {
               orangeBuffRef.current.activate(playerId)
-              playSound("ability_activate", { volume: 0.7 })
+              playSound("orange_buff_activate", { volume: 0.7 })
               console.log("Orange buff activated! 2x swim speed!")
 
               // Visual feedback
@@ -568,7 +569,7 @@ export function GameCanvas() {
               // Successful purchase
               setPlayerPoints(prev => prev - price)
               setPlayerFishInventory(prev => [...prev, fishType])
-              playSound("ability_activate", { volume: 0.6 })
+              playSound("item_pickup", { volume: 0.6 })
               console.log(`Bought ${fishType} for ${price} points!`)
 
               // Visual feedback
@@ -713,7 +714,7 @@ export function GameCanvas() {
           baitZonesRef.current.push(baitZone)
           entityLayer.addChild(baitZone.container)
 
-          playSound("ability_activate", { volume: 0.5 })
+          playSound("item_throw", { volume: 0.5 })
           console.log(`Threw ${fishToThrow} bait at (${throwX}, ${throwY})`)
 
           // Visual feedback
@@ -851,7 +852,7 @@ export function GameCanvas() {
             heldBeachItemRef.current = item
             // Hide the item's container (player is now "holding" it)
             item.container.visible = false
-            playSound("ability_activate", { volume: 0.5 })
+            playSound("item_pickup", { volume: 0.5 })
 
             const pickupText = new Text({
               text: `🏖️ Picked up ${item.type}!`,
@@ -913,7 +914,7 @@ export function GameCanvas() {
           beachItemSpawnerRef.current?.removeItem(heldItem)
           heldBeachItemRef.current = null
 
-          playSound("ability_activate", { volume: 0.6 })
+          playSound("item_throw", { volume: 0.6 })
           console.log(`Threw ${itemType} at shark!`)
 
           const throwText = new Text({
@@ -965,7 +966,7 @@ export function GameCanvas() {
 
           // Check for win condition - shark defeated!
           if (shark.isDefeated() && !victoryScreenVisible) {
-            playSound("ability_activate", { volume: 0.8 })
+            playSound("victory_fanfare", { volume: 0.8 })
             setVictoryScreenVisible(true)
             // Stop the game loop
             app.ticker.stop()
@@ -1017,6 +1018,13 @@ export function GameCanvas() {
           const playerId = player?.userId || "player_1"
           const isActive = orangeBuffRef.current.isActive(playerId)
           const timeLeft = orangeBuffRef.current.getRemainingTime(playerId)
+
+          // Detect when buff expires (was active, now inactive)
+          if (orangeBuffWasActiveRef.current && !isActive) {
+            playSound("orange_buff_expire", { volume: 0.6 })
+          }
+          orangeBuffWasActiveRef.current = isActive
+
           setOrangeBuffActive(isActive)
           setOrangeBuffTimeLeft(Math.ceil(timeLeft / 1000))
         }
@@ -1185,6 +1193,7 @@ export function GameCanvas() {
                 const progress = secretRoomRef.current.getHitProgress(player.userId || "player_1")
                 if (progress.current === progress.required) {
                   // Just unlocked!
+                  playSound("secret_room_unlock", { volume: 0.8 })
                   const unlockText = new Text({
                     text: "🗝️ SECRET ROOM UNLOCKED!",
                     style: {
@@ -1242,6 +1251,7 @@ export function GameCanvas() {
 
               // Extra combo effect
               if (isComboHit) {
+                playSound("combo_hit", { volume: 0.8 })
                 const comboText = new Text({
                   text: "💥 BAIT COMBO! 💥",
                   style: {
@@ -1463,7 +1473,7 @@ export function GameCanvas() {
             if (collected) {
               // Award points
               setPlayerPoints(prev => prev + collected.points)
-              playSound("ability_activate", { volume: 0.6 })
+              playSound("treasure_collect", { volume: 0.6 })
               console.log(`Collected ${collected.type} for ${collected.points} points!`)
 
               // Visual feedback
