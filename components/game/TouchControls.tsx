@@ -28,40 +28,42 @@ export function TouchControls({
 
   return (
     <>
-      {/* Virtual Joystick - Bottom Left */}
-      <div className="absolute bottom-4 left-4 z-10">
+      {/* Virtual Joystick - Bottom Left with safe area */}
+      <div
+        className="absolute bottom-4 left-4 z-10"
+        style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+      >
         <VirtualJoystick onMove={onMove} />
-        <div className="text-center mt-2 text-white/60 text-xs font-medium backdrop-blur-sm bg-black/20 rounded px-2 py-1">
-          Move
+        <div className="text-center mt-1 text-white/50 text-[10px] font-medium">
+          MOVE
         </div>
       </div>
 
-      {/* Action Buttons - Bottom Right */}
-      <div className="absolute bottom-4 right-4 z-10 flex flex-col gap-3">
+      {/* Action Buttons - Bottom Right with safe area */}
+      <div
+        className="absolute bottom-4 right-4 z-10 flex flex-col gap-2"
+        style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+      >
         {/* Talk Button (conditional) */}
         {showTalkButton && (
           <button
             type="button"
             onPointerDown={() => handleButtonPress(onTalk)}
-            className="w-16 h-16 rounded-full bg-green-500/80 backdrop-blur-sm border-2 border-white/40 flex items-center justify-center text-2xl shadow-lg active:scale-95 transition-transform touch-none"
-            style={{
-              boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-            }}
+            className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-green-500/90 backdrop-blur-sm border-2 border-white/50 flex items-center justify-center text-xl sm:text-2xl shadow-lg active:scale-90 transition-transform touch-none select-none"
+            style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.4)" }}
           >
             💬
           </button>
         )}
 
         {/* Row of primary action buttons */}
-        <div className="flex gap-3">
+        <div className="flex gap-2 sm:gap-3">
           {/* Selfie Button */}
           <button
             type="button"
             onPointerDown={() => handleButtonPress(onSelfie)}
-            className="w-16 h-16 rounded-full bg-purple-500/80 backdrop-blur-sm border-2 border-white/40 flex items-center justify-center text-2xl shadow-lg active:scale-95 transition-transform touch-none"
-            style={{
-              boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-            }}
+            className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-purple-500/90 backdrop-blur-sm border-2 border-white/50 flex items-center justify-center text-xl sm:text-2xl shadow-lg active:scale-90 transition-transform touch-none select-none"
+            style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.4)" }}
           >
             📸
           </button>
@@ -70,23 +72,17 @@ export function TouchControls({
           <button
             type="button"
             onPointerDown={() => handleButtonPress(onAbility)}
-            className="w-16 h-16 rounded-full bg-cyan-500/80 backdrop-blur-sm border-2 border-white/40 flex items-center justify-center text-2xl shadow-lg active:scale-95 transition-transform touch-none"
-            style={{
-              boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-            }}
+            className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-cyan-500/90 backdrop-blur-sm border-2 border-white/50 flex items-center justify-center text-xl sm:text-2xl shadow-lg active:scale-90 transition-transform touch-none select-none"
+            style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.4)" }}
           >
             ⚡
           </button>
         </div>
 
-        {/* Button Labels */}
-        <div className="flex gap-3 text-center">
-          <div className="w-16 text-white/60 text-xs font-medium backdrop-blur-sm bg-black/20 rounded px-1 py-1">
-            Selfie
-          </div>
-          <div className="w-16 text-white/60 text-xs font-medium backdrop-blur-sm bg-black/20 rounded px-1 py-1">
-            Ability
-          </div>
+        {/* Compact labels */}
+        <div className="flex gap-2 sm:gap-3 justify-center">
+          <span className="text-white/50 text-[10px] w-14 sm:w-16 text-center">SELFIE</span>
+          <span className="text-white/50 text-[10px] w-14 sm:w-16 text-center">ABILITY</span>
         </div>
       </div>
     </>
