@@ -295,9 +295,10 @@ export function GameCanvas() {
       const playerSpawnX = app.screen.width / 2
       const playerSpawnY = app.screen.height / 2
       const sharkWaterLine = app.screen.height * 0.35
+      const isLandscapeMode = app.screen.width > app.screen.height
 
-      // Calculate initial shark position
-      let sharkSpawnX = app.screen.width * 0.8
+      // Calculate initial shark position - use more horizontal space in landscape
+      let sharkSpawnX = isLandscapeMode ? app.screen.width * 0.85 : app.screen.width * 0.8
       let sharkSpawnY = Math.max(app.screen.height * 0.6, sharkWaterLine + 100)
 
       // Calculate distance from player
@@ -305,11 +306,17 @@ export function GameCanvas() {
       const dy = sharkSpawnY - playerSpawnY
       const distance = Math.sqrt(dx * dx + dy * dy)
 
-      // If too close, spawn shark further away (bottom-right corner of water area)
+      // If too close, spawn shark further away
       if (distance < MIN_SHARK_SPAWN_DISTANCE) {
-        // Spawn at edge of screen in the water, ensuring minimum distance
-        sharkSpawnX = Math.min(app.screen.width - 50, playerSpawnX + MIN_SHARK_SPAWN_DISTANCE * 0.8)
-        sharkSpawnY = Math.min(app.screen.height - 50, Math.max(sharkWaterLine + 100, playerSpawnY + MIN_SHARK_SPAWN_DISTANCE * 0.6))
+        if (isLandscapeMode) {
+          // In landscape, spawn far right in water
+          sharkSpawnX = Math.min(app.screen.width - 50, playerSpawnX + MIN_SHARK_SPAWN_DISTANCE)
+          sharkSpawnY = Math.max(sharkWaterLine + 80, app.screen.height * 0.55)
+        } else {
+          // In portrait, spawn bottom-right corner of water area
+          sharkSpawnX = Math.min(app.screen.width - 50, playerSpawnX + MIN_SHARK_SPAWN_DISTANCE * 0.8)
+          sharkSpawnY = Math.min(app.screen.height - 50, Math.max(sharkWaterLine + 100, playerSpawnY + MIN_SHARK_SPAWN_DISTANCE * 0.6))
+        }
       }
 
       const shark = new Shark(sharkSpawnX, sharkSpawnY)

@@ -7,6 +7,7 @@ import { useState } from "react"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { useIsTouchDevice } from "@/hooks/useIsTouchDevice"
+import { useIsLandscape } from "@/hooks/useIsLandscape"
 
 export default function LobbyPage() {
   const router = useRouter()
@@ -14,7 +15,9 @@ export default function LobbyPage() {
   const [selectedArchetype, setSelectedArchetype] = useState<"influencer" | "boomer_dad" | "surfer_bro" | "lifeguard" | "marine_biologist" | "spring_breaker">("influencer")
   const [creatingGame, setCreatingGame] = useState(false)
   const [showHowToPlay, setShowHowToPlay] = useState(false)
+  const [dismissedLandscapeTip, setDismissedLandscapeTip] = useState(false)
   const isTouchDevice = useIsTouchDevice()
+  const isLandscape = useIsLandscape()
 
   // Get active games
   const activeGames = useQuery(api.games.getActiveGames)
@@ -132,6 +135,24 @@ export default function LobbyPage() {
           <div className="text-4xl sm:text-5xl transform -scale-x-100">🦈</div>
         </div>
       </div>
+
+      {/* Landscape mode tip for mobile portrait */}
+      {isTouchDevice && !isLandscape && !dismissedLandscapeTip && (
+        <div className="relative z-20 mx-4 mt-2 mb-0">
+          <div className="bg-blue-900/80 backdrop-blur-sm rounded-lg px-4 py-2 flex items-center justify-between gap-3 border border-blue-400/30">
+            <div className="flex items-center gap-2 text-white text-sm">
+              <span className="text-lg">📱↔️</span>
+              <span>Rotate to <strong>landscape</strong> for best gameplay!</span>
+            </div>
+            <button
+              onClick={() => setDismissedLandscapeTip(true)}
+              className="text-white/60 hover:text-white text-lg font-bold"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Main content */}
       <div className="relative z-10 px-4 py-6 sm:px-6 sm:py-8 pb-safe">

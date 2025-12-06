@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { useIsTouchDevice } from "@/hooks/useIsTouchDevice";
+import { useIsLandscape } from "@/hooks/useIsLandscape";
 
 interface MinimapProps {
   playerPos: { x: number; y: number };
@@ -28,7 +29,9 @@ export default function Minimap({
 }: MinimapProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const isTouchDevice = useIsTouchDevice();
-  const MINIMAP_SIZE = isTouchDevice ? 100 : 120;
+  const isLandscape = useIsLandscape();
+  // Smaller minimap in landscape to not block view
+  const MINIMAP_SIZE = isTouchDevice ? (isLandscape ? 80 : 100) : 120;
 
   useEffect(() => {
     if (!visible) return;
@@ -125,13 +128,18 @@ export default function Minimap({
 
     ctx.restore();
 
-  }, [visible, playerPos, sharkPos, sharkRotation, stations, items, worldSize, waterLineY]);
+  }, [visible, playerPos, sharkPos, sharkRotation, stations, items, worldSize, waterLineY, MINIMAP_SIZE]);
 
   if (!visible) return null;
 
+  // In landscape mobile, position top-center to avoid side controls
+  const positionClasses = isTouchDevice && isLandscape
+    ? "fixed top-2 left-1/2 -translate-x-1/2 z-40"
+    : "fixed top-12 right-2 sm:top-4 sm:right-4 z-40";
+
   return (
     <div
-      className="fixed top-12 right-2 sm:top-4 sm:right-4 z-40"
+      className={positionClasses}
       style={{ paddingTop: isTouchDevice ? "env(safe-area-inset-top, 0px)" : undefined }}
     >
       <div className="relative">
@@ -145,17 +153,17 @@ export default function Minimap({
             className="rounded"
           />
 
-          {/* Legend */}
-          <div className="mt-2 space-y-1 text-xs text-white/80">
-            <div className="flex items-center gap-2">
+          {/* Legend - horizontal in landscape, vertical otherwise */}
+          <div className={`mt-1.5 text-[10px] text-white/80 ${isLandscape && isTouchDevice ? 'flex gap-3' : 'space-y-1'}`}>
+            <div className="flex items-center gap-1">
               <div className="w-2 h-2 rounded-full bg-blue-500"></div>
               <span>You</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
               <div className="w-2 h-2 bg-red-500" style={{ clipPath: "polygon(100% 50%, 0 0, 0 100%)" }}></div>
               <span>Shark</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
               <div className="w-2 h-2 bg-green-500"></div>
               <span>Stations</span>
             </div>
