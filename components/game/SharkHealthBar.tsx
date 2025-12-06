@@ -2,6 +2,8 @@
 
 import { AnimatePresence, motion } from "framer-motion"
 import { useEffect, useState } from "react"
+import { useIsTouchDevice } from "@/hooks/useIsTouchDevice"
+import { useIsLandscape } from "@/hooks/useIsLandscape"
 
 interface SharkHealthBarProps {
   currentHP: number
@@ -18,6 +20,11 @@ export function SharkHealthBar({
 }: SharkHealthBarProps) {
   const [prevHP, setPrevHP] = useState(currentHP)
   const [showDamage, setShowDamage] = useState(false)
+  const isTouchDevice = useIsTouchDevice()
+  const isLandscape = useIsLandscape()
+
+  // Use compact mode on mobile
+  const isCompact = isTouchDevice
 
   const healthPercent = Math.max(0, Math.min(100, (currentHP / maxHP) * 100))
   const isLowHealth = healthPercent <= 30
@@ -46,15 +53,19 @@ export function SharkHealthBar({
     return "shadow-[0_0_10px_rgba(220,38,38,0.5)]"
   }
 
+  // In landscape mobile, position to not overlap with minimap (which is top-center)
+  const topPosition = isCompact && isLandscape ? "top-2" : isCompact ? "top-12" : "top-6"
+
   return (
     <AnimatePresence>
       {isVisible && (
         <motion.div
-          className="fixed top-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-2xl px-4"
+          className={`fixed ${topPosition} left-1/2 -translate-x-1/2 z-40 w-full ${isCompact ? 'max-w-[280px] px-2' : 'max-w-2xl px-4'}`}
           initial={{ y: -100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: -100, opacity: 0 }}
           transition={{ duration: 0.5, ease: "easeOut" }}
+          style={isCompact ? { paddingTop: "env(safe-area-inset-top, 0px)" } : undefined}
         >
           <div className="relative">
             {/* Boss health bar container */}
@@ -74,11 +85,11 @@ export function SharkHealthBar({
               }
               transition={{ duration: 0.3 }}
             >
-              {/* Header section */}
-              <div className="bg-gradient-to-b from-red-900/50 to-transparent px-4 py-2 flex items-center justify-between border-b border-red-900/50">
-                <div className="flex items-center gap-3">
+              {/* Header section - compact on mobile */}
+              <div className={`bg-gradient-to-b from-red-900/50 to-transparent ${isCompact ? 'px-2 py-1' : 'px-4 py-2'} flex items-center justify-between border-b border-red-900/50`}>
+                <div className={`flex items-center ${isCompact ? 'gap-1.5' : 'gap-3'}`}>
                   <motion.span
-                    className="text-3xl"
+                    className={isCompact ? "text-lg" : "text-3xl"}
                     animate={
                       isLowHealth
                         ? {
@@ -98,7 +109,7 @@ export function SharkHealthBar({
                   <div>
                     <h2
                       className={`
-                      font-bold text-lg tracking-wider uppercase
+                      font-bold ${isCompact ? 'text-xs' : 'text-lg'} tracking-wider uppercase
                       ${isCriticalHealth ? "text-red-400 animate-pulse" : "text-red-500"}
                     `}
                       style={{
@@ -107,28 +118,28 @@ export function SharkHealthBar({
                     >
                       JAWS
                     </h2>
-                    <p className="text-red-300/70 text-xs">Apex Predator</p>
+                    {!isCompact && <p className="text-red-300/70 text-xs">Apex Predator</p>}
                   </div>
                 </div>
 
                 {/* HP Text */}
                 <div className="text-right">
                   <motion.div
-                    className="font-mono text-lg font-bold text-white"
+                    className={`font-mono ${isCompact ? 'text-xs' : 'text-lg'} font-bold text-white`}
                     key={currentHP}
                     initial={{ scale: 1.2, color: "#fca5a5" }}
                     animate={{ scale: 1, color: "#ffffff" }}
                     transition={{ duration: 0.2 }}
                   >
-                    {Math.ceil(currentHP)} / {maxHP}
+                    {Math.ceil(currentHP)}/{maxHP}
                   </motion.div>
-                  <div className="text-red-300/70 text-xs">HP</div>
+                  {!isCompact && <div className="text-red-300/70 text-xs">HP</div>}
                 </div>
               </div>
 
               {/* Health bar section */}
-              <div className="px-4 py-3">
-                <div className="relative h-8 bg-black/50 rounded-full border border-red-900/50 overflow-hidden">
+              <div className={isCompact ? "px-2 py-1.5" : "px-4 py-3"}>
+                <div className={`relative ${isCompact ? 'h-4' : 'h-8'} bg-black/50 rounded-full border border-red-900/50 overflow-hidden`}>
                   {/* Background grid pattern */}
                   <div
                     className="absolute inset-0 opacity-10"
@@ -182,7 +193,7 @@ export function SharkHealthBar({
                   {/* Percentage text overlay */}
                   <div className="absolute inset-0 flex items-center justify-center">
                     <span
-                      className="font-bold text-sm text-white drop-shadow-lg"
+                      className={`font-bold ${isCompact ? 'text-[10px]' : 'text-sm'} text-white drop-shadow-lg`}
                       style={{ textShadow: "0 0 4px rgba(0,0,0,0.8)" }}
                     >
                       {Math.round(healthPercent)}%
@@ -206,19 +217,21 @@ export function SharkHealthBar({
                   )}
                 </div>
 
-                {/* Segment markers (visual only) */}
-                <div className="absolute top-0 left-4 right-4 h-8 flex items-center pointer-events-none mt-3">
-                  {[...Array(4)].map((_, i) => (
-                    <div
-                      key={i}
-                      className="flex-1 border-r border-black/30 last:border-r-0 h-full"
-                    />
-                  ))}
-                </div>
+                {/* Segment markers (visual only) - hide on compact */}
+                {!isCompact && (
+                  <div className="absolute top-0 left-4 right-4 h-8 flex items-center pointer-events-none mt-3">
+                    {[...Array(4)].map((_, i) => (
+                      <div
+                        key={i}
+                        className="flex-1 border-r border-black/30 last:border-r-0 h-full"
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
 
-              {/* Warning text for low health */}
-              {isLowHealth && (
+              {/* Warning text for low health - hide on compact */}
+              {isLowHealth && !isCompact && (
                 <motion.div
                   className="px-4 pb-2"
                   initial={{ opacity: 0, y: -10 }}
@@ -241,14 +254,14 @@ export function SharkHealthBar({
             <AnimatePresence>
               {showDamage && lastDamage && lastDamage > 0 && (
                 <motion.div
-                  className="absolute -bottom-8 left-1/2 -translate-x-1/2"
+                  className={`absolute ${isCompact ? '-bottom-4' : '-bottom-8'} left-1/2 -translate-x-1/2`}
                   initial={{ y: 0, opacity: 0, scale: 0.5 }}
-                  animate={{ y: 10, opacity: 1, scale: 1 }}
-                  exit={{ y: 30, opacity: 0, scale: 0.8 }}
+                  animate={{ y: isCompact ? 5 : 10, opacity: 1, scale: 1 }}
+                  exit={{ y: isCompact ? 15 : 30, opacity: 0, scale: 0.8 }}
                   transition={{ duration: 0.5, ease: "easeOut" }}
                 >
                   <div
-                    className="font-bold text-2xl text-red-400"
+                    className={`font-bold ${isCompact ? 'text-sm' : 'text-2xl'} text-red-400`}
                     style={{
                       textShadow:
                         "0 0 10px rgba(239,68,68,0.8), 2px 2px 4px rgba(0,0,0,0.8)",
