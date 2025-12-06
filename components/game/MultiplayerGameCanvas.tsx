@@ -113,8 +113,17 @@ export function MultiplayerGameCanvas({ gameId, userId, playerName }: Multiplaye
       gameContainer.addChild(player.container)
       localPlayerRef.current = player
 
-      // Create shark (visible to all, controlled by host)
-      const shark = new Shark(100, 100)
+      // Create shark - ensure minimum spawn distance from player
+      const MIN_SHARK_SPAWN_DISTANCE = 350
+      const playerSpawnX = window.innerWidth / 2
+      const playerSpawnY = window.innerHeight / 2
+      const waterLineY = window.innerHeight / 2
+
+      // Spawn shark in water area, far from player
+      const sharkSpawnX = Math.min(window.innerWidth - 50, playerSpawnX + MIN_SHARK_SPAWN_DISTANCE * 0.8)
+      const sharkSpawnY = Math.min(window.innerHeight - 50, Math.max(waterLineY + 100, playerSpawnY + MIN_SHARK_SPAWN_DISTANCE * 0.6))
+
+      const shark = new Shark(sharkSpawnX, sharkSpawnY)
       gameContainer.addChild(shark.container)
       sharkRef.current = shark
 

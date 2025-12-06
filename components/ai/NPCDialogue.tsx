@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion"
 import { MessageCircle, Send, X } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import type { NPCContext, NPCType } from "@/lib/ai/npcDialogue"
+import { useIsTouchDevice } from "@/hooks/useIsTouchDevice"
 
 interface ChatMessage {
   id: string
@@ -45,6 +46,7 @@ export function NPCDialogue({
   const chatContainerRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
+  const isTouchDevice = useIsTouchDevice()
 
   // Get NPC-specific styling
   const getNPCStyle = useCallback(() => {
@@ -346,14 +348,14 @@ export function NPCDialogue({
 
             <div className={`flex items-center gap-1 text-xs mt-2 opacity-60 ${style.text}`}>
               <MessageCircle size={12} />
-              <span>Click to chat</span>
+              <span>{isTouchDevice ? "Tap to chat" : "Click to chat"}</span>
             </div>
           </div>
         ) : (
-          /* Expanded chat view */
+          /* Expanded chat view - responsive size */
           <motion.div
             initial={{ width: 200, height: 100 }}
-            animate={{ width: 320, height: 300 }}
+            animate={{ width: isTouchDevice ? 280 : 320, height: isTouchDevice ? 260 : 300 }}
             className={`relative rounded-lg border-2 shadow-xl overflow-hidden ${style.bg} ${style.border}`}
           >
             {/* Header */}
@@ -370,7 +372,7 @@ export function NPCDialogue({
             {/* Chat messages */}
             <div
               ref={chatContainerRef}
-              className="h-[200px] overflow-y-auto p-3 space-y-2"
+              className={`${isTouchDevice ? 'h-[160px]' : 'h-[200px]'} overflow-y-auto p-3 space-y-2`}
             >
               {chatHistory.map((msg) => (
                 <div

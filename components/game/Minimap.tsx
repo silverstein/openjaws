@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useIsTouchDevice } from "@/hooks/useIsTouchDevice";
 
 interface MinimapProps {
   playerPos: { x: number; y: number };
@@ -26,7 +27,8 @@ export default function Minimap({
   onToggle,
 }: MinimapProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const MINIMAP_SIZE = 120;
+  const isTouchDevice = useIsTouchDevice();
+  const MINIMAP_SIZE = isTouchDevice ? 100 : 120;
 
   useEffect(() => {
     if (!visible) return;
@@ -128,10 +130,13 @@ export default function Minimap({
   if (!visible) return null;
 
   return (
-    <div className="fixed top-4 right-4 z-50">
+    <div
+      className="fixed top-12 right-2 sm:top-4 sm:right-4 z-40"
+      style={{ paddingTop: isTouchDevice ? "env(safe-area-inset-top, 0px)" : undefined }}
+    >
       <div className="relative">
         {/* Minimap container */}
-        <div className="bg-black/60 backdrop-blur-sm rounded-lg p-2 border border-white/20 shadow-lg">
+        <div className="bg-black/60 backdrop-blur-sm rounded-lg p-1.5 sm:p-2 border border-white/20 shadow-lg">
           <canvas
             ref={canvasRef}
             width={MINIMAP_SIZE}
@@ -161,10 +166,10 @@ export default function Minimap({
         {onToggle && (
           <button
             onClick={onToggle}
-            className="absolute -bottom-8 right-0 text-xs text-white/60 hover:text-white/90 transition-colors"
-            title="Press M to toggle"
+            className="absolute -bottom-6 sm:-bottom-8 right-0 text-[10px] sm:text-xs text-white/60 hover:text-white/90 active:text-white transition-colors"
+            title={isTouchDevice ? "Tap to hide" : "Press M to toggle"}
           >
-            Hide (M)
+            {isTouchDevice ? "Hide" : "Hide (M)"}
           </button>
         )}
       </div>

@@ -289,11 +289,33 @@ export function GameCanvas() {
       playerRef.current = player
       entityLayer.addChild(player.container)
 
-      // Create shark
-      const shark = new Shark(app.screen.width * 0.8, app.screen.height * 0.6)
+      // Create shark - ensure minimum spawn distance from player
+      // On mobile, percentage-based positioning puts shark too close
+      const MIN_SHARK_SPAWN_DISTANCE = 350 // Minimum pixels from player
+      const playerSpawnX = app.screen.width / 2
+      const playerSpawnY = app.screen.height / 2
+      const sharkWaterLine = app.screen.height * 0.35
+
+      // Calculate initial shark position
+      let sharkSpawnX = app.screen.width * 0.8
+      let sharkSpawnY = Math.max(app.screen.height * 0.6, sharkWaterLine + 100)
+
+      // Calculate distance from player
+      const dx = sharkSpawnX - playerSpawnX
+      const dy = sharkSpawnY - playerSpawnY
+      const distance = Math.sqrt(dx * dx + dy * dy)
+
+      // If too close, spawn shark further away (bottom-right corner of water area)
+      if (distance < MIN_SHARK_SPAWN_DISTANCE) {
+        // Spawn at edge of screen in the water, ensuring minimum distance
+        sharkSpawnX = Math.min(app.screen.width - 50, playerSpawnX + MIN_SHARK_SPAWN_DISTANCE * 0.8)
+        sharkSpawnY = Math.min(app.screen.height - 50, Math.max(sharkWaterLine + 100, playerSpawnY + MIN_SHARK_SPAWN_DISTANCE * 0.6))
+      }
+
+      const shark = new Shark(sharkSpawnX, sharkSpawnY)
       sharkRef.current = shark
       entityLayer.addChild(shark.container)
-      gameLogger.debug("Shark created at:", shark.x, shark.y)
+      gameLogger.debug("Shark created at:", shark.x, shark.y, "distance from player:", Math.sqrt((sharkSpawnX - playerSpawnX) ** 2 + (sharkSpawnY - playerSpawnY) ** 2).toFixed(0))
 
       // Set shark personality without AI controller for now
       shark.setPersonality("theatrical") // Start with theatrical personality
