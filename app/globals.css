@@ -32,6 +32,10 @@ body {
   padding: 0;
   width: 100%;
   height: 100%;
+}
+
+/* Game page needs overflow hidden, but not lobby */
+body:has(canvas) {
   overflow: hidden;
 }
 
@@ -40,4 +44,20 @@ canvas {
   display: block;
   width: 100%;
   height: 100%;
+}
+
+/* Safe area padding for notched devices */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* Mobile viewport fix */
+@supports (height: 100dvh) {
+  .min-h-screen {
+    min-height: 100dvh;
+  }
 }
