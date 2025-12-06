@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
+import { useIsTouchDevice } from "@/hooks/useIsTouchDevice"
 
 export default function LobbyPage() {
   const router = useRouter()
@@ -13,6 +14,7 @@ export default function LobbyPage() {
   const [selectedArchetype, setSelectedArchetype] = useState<"influencer" | "boomer_dad" | "surfer_bro" | "lifeguard" | "marine_biologist" | "spring_breaker">("influencer")
   const [creatingGame, setCreatingGame] = useState(false)
   const [showHowToPlay, setShowHowToPlay] = useState(false)
+  const isTouchDevice = useIsTouchDevice()
 
   // Get active games
   const activeGames = useQuery(api.games.getActiveGames)
@@ -233,24 +235,47 @@ export default function LobbyPage() {
 
                 <div className={`overflow-hidden transition-all duration-300 ${showHowToPlay ? 'max-h-96 mt-2' : 'max-h-0'}`}>
                   <div className="p-3 bg-blue-50/50 rounded-xl">
-                    <div className="grid grid-cols-2 gap-2 text-xs sm:text-sm text-gray-600">
-                      <div className="flex items-center gap-2">
-                        <kbd className="px-2 py-1 bg-gray-200 rounded text-[10px] font-mono">WASD</kbd>
-                        <span>Move</span>
+                    {isTouchDevice ? (
+                      /* Touch controls */
+                      <div className="grid grid-cols-2 gap-2 text-xs sm:text-sm text-gray-600">
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg">🕹️</span>
+                          <span>Joystick to move</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg">⚡</span>
+                          <span>Tap for ability</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg">📸</span>
+                          <span>Tap for selfie</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg">💬</span>
+                          <span>Tap to talk</span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <kbd className="px-2 py-1 bg-gray-200 rounded text-[10px] font-mono">SPACE</kbd>
-                        <span>Ability</span>
+                    ) : (
+                      /* Keyboard controls */
+                      <div className="grid grid-cols-2 gap-2 text-xs sm:text-sm text-gray-600">
+                        <div className="flex items-center gap-2">
+                          <kbd className="px-2 py-1 bg-gray-200 rounded text-[10px] font-mono">WASD</kbd>
+                          <span>Move</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <kbd className="px-2 py-1 bg-gray-200 rounded text-[10px] font-mono">SPACE</kbd>
+                          <span>Ability</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <kbd className="px-2 py-1 bg-gray-200 rounded text-[10px] font-mono">F</kbd>
+                          <span>Selfie</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <kbd className="px-2 py-1 bg-gray-200 rounded text-[10px] font-mono">E</kbd>
+                          <span>Talk</span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <kbd className="px-2 py-1 bg-gray-200 rounded text-[10px] font-mono">F</kbd>
-                        <span>Selfie</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <kbd className="px-2 py-1 bg-gray-200 rounded text-[10px] font-mono">E</kbd>
-                        <span>Talk</span>
-                      </div>
-                    </div>
+                    )}
                     <p className="text-xs text-gray-500 mt-3 text-center">
                       Complete viral challenges while avoiding the AI shark!
                     </p>
