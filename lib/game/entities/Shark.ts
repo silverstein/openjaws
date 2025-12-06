@@ -1,4 +1,5 @@
 import { Container, Graphics, Sprite, Text, TextStyle } from "pixi.js"
+import { gameLogger } from "@/lib/logger"
 import type { SharkPersonality } from "@/convex/types"
 import type { SharkAIController } from "../ai/SharkAIController"
 import type { Player } from "./Player"
@@ -365,7 +366,7 @@ export class Shark {
 
     // Check for collision
     if (dist < 30) {
-      console.log("CHOMP! Player caught!")
+      gameLogger.debug("CHOMP! Player caught!")
       // In a real game, this would trigger death/respawn
     }
   }
@@ -494,7 +495,7 @@ export class Shark {
         this.updateAIThought(decision.reasoning)
       }
     } catch (error) {
-      console.error("Error polling AI decision:", error)
+      gameLogger.error("Error polling AI decision:", error)
     }
   }
 

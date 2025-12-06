@@ -1,4 +1,5 @@
 import { Container, Graphics, Sprite, Text, TextStyle } from "pixi.js"
+import { gameLogger } from "@/lib/logger"
 import { ViewerShield } from "../effects/ViewerShield"
 import { assetLoader } from "../AssetLoader"
 
@@ -571,7 +572,7 @@ export class Player {
 
     this.health = Math.max(0, this.health - amount)
     if (this.health <= 0) {
-      console.log("Player eliminated!")
+      gameLogger.debug("Player eliminated!")
     }
     return true // Damage was applied
   }

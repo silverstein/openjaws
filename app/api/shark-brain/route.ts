@@ -9,6 +9,7 @@ import {
   streamSharkThoughts,
   updateSharkMemory,
 } from "@/lib/ai/sharkBrain"
+import { sharkLogger } from "@/lib/logger"
 import { getClientIP, rateLimit } from "@/lib/rateLimit"
 
 // Input validation schemas
@@ -162,7 +163,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ error: "Invalid action" }, { status: 400 })
   } catch (error) {
-    console.error("Shark brain error:", error)
+    sharkLogger.error("Shark brain error:", error)
     return NextResponse.json({ error: "Failed to process shark decision" }, { status: 500 })
   }
 }
@@ -227,7 +228,7 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error("Shark thoughts error:", error)
+    sharkLogger.error("Shark thoughts error:", error)
     return NextResponse.json({ error: "Failed to stream shark thoughts" }, { status: 500 })
   }
 }

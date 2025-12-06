@@ -1,3 +1,4 @@
+import { apiLogger } from "@/lib/logger"
 import { type APIUsageStats, freeTierConfig, getInitialUsageStats } from "./config"
 import { responseCache } from "./responseCache"
 
@@ -12,7 +13,7 @@ export function checkDailyReset(): void {
   // Reset if it's been more than 24 hours
   if (now.getTime() - lastReset.getTime() > 24 * 60 * 60 * 1000) {
     apiUsageStats = getInitialUsageStats()
-    console.log("[API] Daily API limit reset")
+    apiLogger.info("Daily API limit reset")
   }
 }
 
@@ -63,9 +64,9 @@ export function trackAPIUsage(type: "shark" | "npc" | "commentary"): void {
   // Log warning when approaching limit
   const remaining = freeTierConfig.FREE_TIER_LIMIT - apiUsageStats.totalCalls
   if (remaining > 0 && remaining <= 10) {
-    console.warn(`[API] Only ${remaining} API calls remaining before switching to mock mode`)
+    apiLogger.warn(`Only ${remaining} API calls remaining before switching to mock mode`)
   } else if (remaining === 0) {
-    console.log("[API] API limit reached, switching to mock mode")
+    apiLogger.info("API limit reached, switching to mock mode")
   }
 }
 

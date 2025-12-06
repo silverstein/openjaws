@@ -1,4 +1,5 @@
 import { Assets } from "pixi.js"
+import { gameLogger } from "@/lib/logger"
 
 /**
  * Asset management using Pixi.js v8 Assets API
@@ -129,9 +130,9 @@ export class AssetLoader {
       })
 
       this.loaded = true
-      console.log("All game assets loaded successfully")
+      gameLogger.debug("All game assets loaded successfully")
     } catch (error) {
-      console.error("Error loading assets:", error)
+      gameLogger.error("Error loading assets:", error)
       // Don't throw - game should work with fallback graphics
       this.loaded = false
     } finally {
@@ -176,7 +177,7 @@ export class AssetLoader {
     try {
       return Assets.get(path)
     } catch {
-      console.warn(`Texture not found: ${path}`)
+      gameLogger.error(`Texture not found: ${path}`)
       return null
     }
   }
@@ -202,9 +203,9 @@ export class AssetLoader {
     try {
       await Assets.unloadBundle("game")
       this.loaded = false
-      console.log("All game assets unloaded")
+      gameLogger.debug("All game assets unloaded")
     } catch (error) {
-      console.error("Error unloading assets:", error)
+      gameLogger.error("Error unloading assets:", error)
     }
   }
 }

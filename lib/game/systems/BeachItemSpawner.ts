@@ -1,3 +1,4 @@
+import { gameLogger } from "@/lib/logger"
 import type { BeachItem } from "../entities/BeachItem"
 import { getRandomBeachItemType, type BeachItemType } from "../entities/BeachItem"
 import { BeachBall } from "../entities/BeachBall"
@@ -129,7 +130,7 @@ export class BeachItemSpawner {
       case "pool_noodle":
         return new PoolNoodle(x, y)
       default:
-        console.warn(`Unknown beach item type: ${type}`)
+        gameLogger.error(`Unknown beach item type: ${type}`)
         return null
     }
   }

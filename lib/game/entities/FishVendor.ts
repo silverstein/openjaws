@@ -1,4 +1,5 @@
 import { Container, Graphics, Sprite, Text, TextStyle } from "pixi.js"
+import { gameLogger } from "@/lib/logger"
 import type { NPCType } from "@/lib/ai/npcDialogue"
 import { assetLoader } from "../AssetLoader"
 
@@ -243,7 +244,7 @@ export class FishVendor {
 
   public startReaction(event: string): void {
     // Visual reaction to events
-    console.log(`${this.npcName} reacting to: ${event}`)
+    gameLogger.debug(`${this.npcName} reacting to: ${event}`)
   }
 }
 

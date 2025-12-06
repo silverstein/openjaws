@@ -1,5 +1,6 @@
 import { generateText, streamText } from "ai"
 import { z } from "zod"
+import { sharkLogger } from "@/lib/logger"
 import { determineAIMode, trackAPIUsage, updateCurrentMode } from "./apiTracking"
 import { aiConfig, models } from "./config"
 import {
@@ -80,20 +81,20 @@ export async function makeSharkDecision(context: GameContext): Promise<SharkDeci
   const mode = determineAIMode()
   updateCurrentMode(mode)
 
-  console.log(`[SharkBrain] Making decision in ${mode} mode`)
+  sharkLogger.debug(`Making decision in ${mode} mode`)
 
   // Try cached response first
   if (mode === "cached" || mode === "mock") {
     const cached = responseCache.getCachedSharkDecision(context.sharkPersonality, context)
     if (cached) {
-      console.log("[SharkBrain] Using cached decision")
+      sharkLogger.debug("Using cached decision")
       return cached
     }
   }
 
   // Use mock response if in mock mode or API limit reached
   if (mode === "mock") {
-    console.log("[SharkBrain] Using mock AI response")
+    sharkLogger.debug("Using mock AI response")
     const mockDecision = generateMockSharkDecision(context)
     // Cache the mock response for consistency
     responseCache.cacheSharkDecision(context.sharkPersonality, context, mockDecision, 0.7)
@@ -144,11 +145,11 @@ Respond with a JSON object containing:
 
     // Debug: Check if model is properly initialized
     if (!models.sharkBrain) {
-      console.error("[SharkBrain] Model not initialized!")
+      sharkLogger.error("Model not initialized!")
       throw new Error("Shark brain model not initialized")
     }
 
-    console.log("[SharkBrain] Calling generateText with model:", models.sharkBrain.modelId)
+    sharkLogger.debug("Calling generateText with model:", models.sharkBrain.modelId)
 
     const result = await generateText({
       model: models.sharkBrain,
@@ -159,7 +160,7 @@ Respond with a JSON object containing:
 
     // Check if result has the expected structure
     if (!result || typeof result.text !== "string") {
-      console.error("Invalid generateText result:", result)
+      sharkLogger.error("Invalid generateText result:", result)
       throw new Error("Invalid AI response structure")
     }
 
@@ -167,7 +168,7 @@ Respond with a JSON object containing:
     const parsed = SharkDecisionSchema.safeParse(JSON.parse(result.text))
 
     if (!parsed.success) {
-      console.error("[SharkBrain] Invalid AI response format:", parsed.error.format())
+      sharkLogger.error("Invalid AI response format:", parsed.error.format())
       // Fallback to mock response on validation failure
       const mockDecision = generateMockSharkDecision(context)
       responseCache.cacheSharkDecision(context.sharkPersonality, context, mockDecision, 0.5)
@@ -181,7 +182,7 @@ Respond with a JSON object containing:
 
     return decision
   } catch (error) {
-    console.error("Failed to parse shark decision:", error)
+    sharkLogger.error("Failed to parse shark decision:", error)
     // Fallback to mock response
     const mockDecision = generateMockSharkDecision(context)
     responseCache.cacheSharkDecision(context.sharkPersonality, context, mockDecision, 0.5)
@@ -197,7 +198,7 @@ export async function* streamSharkThoughts(
 
   // Use mock thoughts if in mock mode
   if (mode === "mock" || (mode === "cached" && Math.random() < 0.5)) {
-    console.log(`[SharkBrain] Streaming thoughts in ${mode} mode`)
+    sharkLogger.debug(`Streaming thoughts in ${mode} mode`)
     yield* streamMockSharkThoughts(context, recentAction)
     return
   }
@@ -235,7 +236,7 @@ Stream your inner thoughts as you ${recentAction}. Stay in character with your p
       yield chunk
     }
   } catch (error) {
-    console.error("Failed to stream shark thoughts:", error)
+    sharkLogger.error("Failed to stream shark thoughts:", error)
     // Fallback to mock thoughts
     yield* streamMockSharkThoughts(context, recentAction)
   }
@@ -340,13 +341,13 @@ export async function generateSharkTaunt(context: GameContext, trigger: string):
   const cached = responseCache.getCachedTaunt(context.sharkPersonality, trigger)
   if (cached && Math.random() < 0.7) {
     // 70% chance to use cache
-    console.log("[SharkBrain] Using cached taunt")
+    sharkLogger.debug("Using cached taunt")
     return cached
   }
 
   // Use mock taunt if in mock mode
   if (mode === "mock") {
-    console.log("[SharkBrain] Using mock taunt")
+    sharkLogger.debug("Using mock taunt")
     const taunt = generateMockTaunt(context, trigger)
     responseCache.cacheTaunt(context.sharkPersonality, trigger, taunt, 0.7)
     return taunt
@@ -376,7 +377,7 @@ Keep it under 10 words. Be creative and personality-appropriate.`
     responseCache.cacheTaunt(context.sharkPersonality, trigger, taunt, 0.9)
     return taunt
   } catch (error) {
-    console.error("Failed to generate taunt:", error)
+    sharkLogger.error("Failed to generate taunt:", error)
     // Fallback to mock taunt
     const mockTaunt = generateMockTaunt(context, trigger)
     responseCache.cacheTaunt(context.sharkPersonality, trigger, mockTaunt, 0.5)

@@ -8,6 +8,7 @@ import {
 } from "@/lib/ai/apiTracking"
 import { aiConfig, models } from "@/lib/ai/config"
 import { streamMockCommentary } from "@/lib/ai/mockResponses"
+import { commentaryLogger } from "@/lib/logger"
 
 interface CommentaryContext {
   event: string
@@ -50,7 +51,7 @@ Provide commentary for this moment. Keep it brief (1-2 sentences) but impactful.
         try {
           // Use mock commentary if in mock mode
           if (mode === "mock" || mode === "cached") {
-            console.log(`[Commentary] Using ${mode} mode`)
+            commentaryLogger.debug(`Using ${mode} mode`)
 
             // Stream mock commentary
             for await (const chunk of streamMockCommentary(style as any, intensity as any, event)) {
@@ -75,7 +76,7 @@ Provide commentary for this moment. Keep it brief (1-2 sentences) but impactful.
           }
           controller.close()
         } catch (error) {
-          console.error("Commentary streaming error:", error)
+          commentaryLogger.error("Commentary streaming error:", error)
           // Fallback to mock on error
           for await (const chunk of streamMockCommentary(style as any, intensity as any, event)) {
             controller.enqueue(encoder.encode(chunk))
@@ -96,7 +97,7 @@ Provide commentary for this moment. Keep it brief (1-2 sentences) but impactful.
       },
     })
   } catch (error) {
-    console.error("Commentary error:", error)
+    commentaryLogger.error("Commentary error:", error)
     return NextResponse.json({ error: "Failed to generate commentary" }, { status: 500 })
   }
 }

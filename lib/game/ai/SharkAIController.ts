@@ -1,4 +1,5 @@
 import { ConvexClient } from "convex/browser"
+import { gameLogger } from "@/lib/logger"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import type { Position, SharkPersonality } from "@/convex/types"
@@ -113,7 +114,7 @@ export class SharkAIController {
 
       return decision
     } catch (error) {
-      console.error("Error getting AI decision:", error)
+      gameLogger.error("Error getting AI decision:", error)
       return this.makeDefaultDecision(context)
     }
   }
@@ -337,7 +338,7 @@ export class SharkAIController {
         },
       })
     } catch (error) {
-      console.error("Error recording pattern:", error)
+      gameLogger.error("Error recording pattern:", error)
     }
   }
 
@@ -369,7 +370,7 @@ export class SharkAIController {
         this.memories.set(targetUserId, memory)
       }
     } catch (error) {
-      console.error("Error recording encounter:", error)
+      gameLogger.error("Error recording encounter:", error)
     }
   }
 
@@ -427,7 +428,7 @@ export class SharkAIController {
         personalityInfluence: `${context.sharkState.personality}: ${aiResponse.personalityNote || "Following instincts"}`,
       }
     } catch (error) {
-      console.error("Error getting AI brain decision:", error)
+      gameLogger.error("Error getting AI brain decision:", error)
       return null
     }
   }
@@ -475,7 +476,7 @@ async function callSharkBrainAPI(context: any): Promise<any> {
 
     return await response.json()
   } catch (error) {
-    console.error("Error calling shark brain API:", error)
+    gameLogger.error("Error calling shark brain API:", error)
     return null
   }
 }

@@ -2,6 +2,7 @@
 
 import { Application, Container, Graphics, Text } from "pixi.js"
 import { useEffect, useRef, useState } from "react"
+import { gameLogger } from "@/lib/logger"
 import { NPCDialogue } from "@/components/ai/NPCDialogue"
 import { PersonalizedTaunts, TAUNT_TEMPLATES } from "@/components/ai/PersonalizedTaunts"
 import { SharkCommentary } from "@/components/ai/SharkCommentary"
@@ -262,7 +263,7 @@ export function GameCanvas() {
         const chromaFilter = new ChromaticAberrationFilter()
         app.stage.filters = [chromaFilter]
       } catch (error) {
-        console.warn("Could not apply chromatic aberration filter:", error)
+        gameLogger.error("Could not apply chromatic aberration filter:", error)
       }
 
       // Initialize psychological effects
@@ -292,13 +293,13 @@ export function GameCanvas() {
       const shark = new Shark(app.screen.width * 0.8, app.screen.height * 0.6)
       sharkRef.current = shark
       entityLayer.addChild(shark.container)
-      console.log("Shark created at:", shark.x, shark.y)
+      gameLogger.debug("Shark created at:", shark.x, shark.y)
 
       // Set shark personality without AI controller for now
       shark.setPersonality("theatrical") // Start with theatrical personality
 
       // We'll use the AI SDK directly in the game loop instead of through the controller
-      console.log("Shark initialized with theatrical personality")
+      gameLogger.debug("Shark initialized with theatrical personality")
 
       // Create beach NPCs
       const npcs = createBeachNPCs(app.screen.width, app.screen.height)
@@ -306,7 +307,7 @@ export function GameCanvas() {
       npcs.forEach((npc) => {
         entityLayer.addChild(npc.container)
       })
-      console.log(`Created ${npcs.length} beach NPCs`)
+      gameLogger.debug(`Created ${npcs.length} beach NPCs`)
 
       // Create harpoon stations
       const harpoonStations = createHarpoonStations(app.screen.width, app.screen.height)
@@ -314,44 +315,44 @@ export function GameCanvas() {
       harpoonStations.forEach((station) => {
         entityLayer.addChild(station.container)
       })
-      console.log(`Created ${harpoonStations.length} harpoon stations`)
+      gameLogger.debug(`Created ${harpoonStations.length} harpoon stations`)
 
       // Create ice cream stand (healing station)
       const iceCreamStand = createIceCreamStand(app.screen.width, app.screen.height)
       iceCreamStandRef.current = iceCreamStand
       entityLayer.addChild(iceCreamStand.container)
-      console.log("Created ice cream stand")
+      gameLogger.debug("Created ice cream stand")
 
       // Create fish market (shop for bait)
       const fishMarket = createFishMarket(app.screen.width, app.screen.height)
       fishMarketRef.current = fishMarket
       entityLayer.addChild(fishMarket.container)
-      console.log("Created fish market")
+      gameLogger.debug("Created fish market")
 
       // Create dock (extends into water - safe walking zone)
       const dock = createDock(app.screen.width, app.screen.height)
       dockRef.current = dock
       entityLayer.addChild(dock.container)
-      console.log("Created dock")
+      gameLogger.debug("Created dock")
 
       // Create boat at end of dock (safe zone in water)
       const dockEnd = dock.getEndPosition()
       const boat = createBoat(dockEnd.x, dockEnd.y)
       boatRef.current = boat
       entityLayer.addChild(boat.container)
-      console.log("Created boat at dock end")
+      gameLogger.debug("Created boat at dock end")
 
       // Create beach house (rest and storage)
       const beachHouse = createBeachHouse(app.screen.width, app.screen.height)
       beachHouseRef.current = beachHouse
       entityLayer.addChild(beachHouse.container)
-      console.log("Created beach house")
+      gameLogger.debug("Created beach house")
 
       // Create secret room (unlocks after 5 shark hits)
       const secretRoom = createSecretRoom(app.screen.width, app.screen.height)
       secretRoomRef.current = secretRoom
       entityLayer.addChild(secretRoom.container)
-      console.log("Created secret room")
+      gameLogger.debug("Created secret room")
 
       // Create orange buff manager
       const orangeBuff = createOrangeBuff()
@@ -361,14 +362,14 @@ export function GameCanvas() {
       const deepWaterZone = createDeepWaterZone(app.screen.width, app.screen.height)
       deepWaterZoneRef.current = deepWaterZone
       deepWaterZone.spawnTreasures()
-      console.log("Created deep water zone")
+      gameLogger.debug("Created deep water zone")
 
       // Create deep water visual indicator (behind other entities)
       const waterLineY = app.screen.height * 0.3
       const deepWaterIndicator = new DeepWaterIndicator(app.screen.width, app.screen.height, waterLineY)
       deepWaterIndicatorRef.current = deepWaterIndicator
       backgroundLayer.addChild(deepWaterIndicator.container) // Add to background so it's behind entities
-      console.log("Created deep water indicator")
+      gameLogger.debug("Created deep water indicator")
 
       // Create beach item spawner
       const beachItemSpawner = new BeachItemSpawner(app.screen.width, app.screen.height)
@@ -378,7 +379,7 @@ export function GameCanvas() {
       for (const item of beachItemSpawner.getItems()) {
         entityLayer.addChild(item.container)
       }
-      console.log("Created beach item spawner")
+      gameLogger.debug("Created beach item spawner")
 
       // Start ocean ambience (if audio is initialized)
       if (!autoplayBlocked) {
@@ -423,7 +424,7 @@ export function GameCanvas() {
                 harpoonsRef.current.push(harpoon)
                 entityLayer.addChild(harpoon.container)
                 playSound("item_throw", { volume: 0.7 })
-                console.log("Harpoon fired!")
+                gameLogger.debug("Harpoon fired!")
                 firedHarpoon = true
                 break
               }
@@ -432,12 +433,12 @@ export function GameCanvas() {
 
           // If no harpoon fired, try selfie
           if (!firedHarpoon && objectiveSystem) {
-            console.log("Attempting selfie...")
+            gameLogger.debug("Attempting selfie...")
 
             const success = objectiveSystem.attemptSelfie(player.x, player.y, shark.x, shark.y)
 
             if (success) {
-              console.log("Selfie successful!")
+              gameLogger.debug("Selfie successful!")
               playSound("selfie_camera", { volume: 0.7 })
               // Track selfie for stats
               setPlayerStats(prev => ({ ...prev, selfiesTaken: prev.selfiesTaken + 1 }))
@@ -482,7 +483,7 @@ export function GameCanvas() {
             if (taken && orangeBuffRef.current) {
               orangeBuffRef.current.activate(playerId)
               playSound("orange_buff_activate", { volume: 0.7 })
-              console.log("Orange buff activated! 2x swim speed!")
+              gameLogger.debug("Orange buff activated! 2x swim speed!")
 
               // Visual feedback
               const orangeText = new Text({
@@ -525,7 +526,7 @@ export function GameCanvas() {
               // Heal the player
               player.health = Math.min(100, player.health + result.amount)
               playSound("ability_activate", { volume: 0.6 })
-              console.log(`Healed for ${result.amount} HP!`)
+              gameLogger.debug(`Healed for ${result.amount} HP!`)
 
               // Visual feedback
               const healText = new Text({
@@ -571,7 +572,7 @@ export function GameCanvas() {
               setPlayerPoints(prev => prev - price)
               setPlayerFishInventory(prev => [...prev, fishType])
               playSound("item_pickup", { volume: 0.6 })
-              console.log(`Bought ${fishType} for ${price} points!`)
+              gameLogger.debug(`Bought ${fishType} for ${price} points!`)
 
               // Visual feedback
               const purchaseText = new Text({
@@ -639,7 +640,7 @@ export function GameCanvas() {
               npc.isPlayerNearby(player.x, player.y)
             )
             if (foundNPC) {
-              console.log(`Interacting with ${foundNPC.npcName}`)
+              gameLogger.debug(`Interacting with ${foundNPC.npcName}`)
               playSound("npc_chime", { volume: 0.5 })
               setActiveNPC(foundNPC)
               foundNPC.setInteracting(true)
@@ -716,7 +717,7 @@ export function GameCanvas() {
           entityLayer.addChild(baitZone.container)
 
           playSound("item_throw", { volume: 0.5 })
-          console.log(`Threw ${fishToThrow} bait at (${throwX}, ${throwY})`)
+          gameLogger.debug(`Threw ${fishToThrow} bait at (${throwX}, ${throwY})`)
 
           // Visual feedback
           const throwText = new Text({
@@ -763,7 +764,7 @@ export function GameCanvas() {
                   player.health = 100
                   player.stamina = 100
                   playSound("ability_activate", { volume: 0.7 })
-                  console.log("Fully recovered from sleep!")
+                  gameLogger.debug("Fully recovered from sleep!")
                 }
               })
             }
@@ -774,7 +775,7 @@ export function GameCanvas() {
           if (boatRef.current && boatRef.current.isPlayerInBoat(playerId)) {
             boatRef.current.eject(playerId)
             playSound("ability_activate", { volume: 0.5 })
-            console.log("Exited boat")
+            gameLogger.debug("Exited boat")
             return
           }
 
@@ -783,7 +784,7 @@ export function GameCanvas() {
             const success = boatRef.current.board(playerId)
             if (success) {
               playSound("ability_activate", { volume: 0.6 })
-              console.log("Boarded boat!")
+              gameLogger.debug("Boarded boat!")
             } else {
               // Boat is full
               const fullText = new Text({
@@ -812,7 +813,7 @@ export function GameCanvas() {
           if (beachHouseRef.current && beachHouseRef.current.isPlayerInside(playerId)) {
             beachHouseRef.current.exit(playerId)
             playSound("ability_activate", { volume: 0.5 })
-            console.log("Exited beach house")
+            gameLogger.debug("Exited beach house")
             return
           }
 
@@ -820,7 +821,7 @@ export function GameCanvas() {
           if (beachHouseRef.current && beachHouseRef.current.canEnter(playerId)) {
             beachHouseRef.current.enter(playerId)
             playSound("ability_activate", { volume: 0.6 })
-            console.log("Entered beach house!")
+            gameLogger.debug("Entered beach house!")
           }
         }
 
@@ -916,7 +917,7 @@ export function GameCanvas() {
           heldBeachItemRef.current = null
 
           playSound("item_throw", { volume: 0.6 })
-          console.log(`Threw ${itemType} at shark!`)
+          gameLogger.debug(`Threw ${itemType} at shark!`)
 
           const throwText = new Text({
             text: `🎯 Threw ${itemType}!`,
@@ -1324,7 +1325,7 @@ export function GameCanvas() {
 
           // Debug log movement
           if (dx !== 0 || dy !== 0) {
-            console.log("Moving:", { dx, dy, keys, touch: touchMovement.current })
+            gameLogger.debug("Moving:", { dx, dy, keys, touch: touchMovement.current })
           }
 
           // Calculate shark distance for abilities
@@ -1449,7 +1450,7 @@ export function GameCanvas() {
               // Award points
               setPlayerPoints(prev => prev + collected.points)
               playSound("treasure_collect", { volume: 0.6 })
-              console.log(`Collected ${collected.type} for ${collected.points} points!`)
+              gameLogger.debug(`Collected ${collected.type} for ${collected.points} points!`)
 
               // Visual feedback
               const treasureText = new Text({
@@ -1765,7 +1766,7 @@ export function GameCanvas() {
                 if (err.name === "AbortError") {
                   return
                 }
-                console.log("AI decision failed, using fallback:", err)
+                gameLogger.error("AI decision failed, using fallback:", err)
                 setIsAIThinking(false)
                 // Fallback to simple thoughts
                 const thoughts =
@@ -2027,7 +2028,7 @@ export function GameCanvas() {
           }
           appRef.current = null
         } catch (e) {
-          console.error("Error destroying Pixi app:", e)
+          gameLogger.error("Error destroying Pixi app:", e)
         }
       }
       if (psychEffectsRef.current) {
@@ -2064,7 +2065,7 @@ export function GameCanvas() {
       const success = objectiveSystem.attemptSelfie(player.x, player.y, shark.x, shark.y)
 
       if (success) {
-        console.log("Selfie successful!")
+        gameLogger.debug("Selfie successful!")
         playSound("selfie_camera", { volume: 0.7 })
         shark.setRage(shark.getRage() + 50)
       }
@@ -2076,7 +2077,7 @@ export function GameCanvas() {
       const player = playerRef.current
       const foundNPC = npcsRef.current.find((npc) => npc.isPlayerNearby(player.x, player.y))
       if (foundNPC) {
-        console.log(`Interacting with ${foundNPC.npcName}`)
+        gameLogger.debug(`Interacting with ${foundNPC.npcName}`)
         playSound("npc_chime", { volume: 0.5 })
         setActiveNPC(foundNPC)
         foundNPC.setInteracting(true)

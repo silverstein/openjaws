@@ -7,6 +7,7 @@ import {
   type NPCContext,
   streamNPCResponse,
 } from "@/lib/ai/npcDialogue"
+import { npcLogger } from "@/lib/logger"
 import { getClientIP, rateLimit } from "@/lib/rateLimit"
 
 // Input validation schemas
@@ -100,7 +101,7 @@ export async function POST(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error("NPC chat error:", error)
+    npcLogger.error("NPC chat error:", error)
     return NextResponse.json({ error: "Failed to generate NPC response" }, { status: 500 })
   }
 }
@@ -167,7 +168,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ error: "Invalid action" }, { status: 400 })
   } catch (error) {
-    console.error("NPC action error:", error)
+    npcLogger.error("NPC action error:", error)
     return NextResponse.json({ error: "Failed to process NPC action" }, { status: 500 })
   }
 }

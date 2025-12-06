@@ -1,4 +1,5 @@
 import { Filter, GlProgram } from "pixi.js"
+import { gameLogger } from "@/lib/logger"
 
 const waterVertex = `
 in vec2 aPosition;
@@ -100,7 +101,7 @@ export function createWaterShader(): WaterShader | null {
   try {
     return new WaterShader()
   } catch (error) {
-    console.error("Failed to create water shader:", error)
+    gameLogger.error("Failed to create water shader:", error)
     return null
   }
 }

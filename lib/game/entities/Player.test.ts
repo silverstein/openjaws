@@ -266,13 +266,10 @@ describe("Player Entity", () => {
       expect(player.health).toBe(0)
     })
 
-    it("should log when eliminated", () => {
-      const consoleSpy = vi.spyOn(console, "log")
-
+    it("should set health to 0 when eliminated", () => {
       player.takeDamage(100)
 
-      expect(consoleSpy).toHaveBeenCalledWith("Player eliminated!")
-      consoleSpy.mockRestore()
+      expect(player.health).toBe(0)
     })
   })
 

@@ -1,4 +1,5 @@
 import { type Application, Container, Graphics } from "pixi.js"
+import { gameLogger } from "@/lib/logger"
 
 export class PsychologicalEffects {
   private app: Application
@@ -130,8 +131,8 @@ export class PsychologicalEffects {
 
   private playHeartbeatSound() {
     // Audio implementation would go here
-    // For now, just console log
-    console.log("Thump-thump")
+    // For now, just log
+    gameLogger.debug("Thump-thump")
   }
 
   // "Being watched" indicator
@@ -271,7 +272,7 @@ export class AchievementTrigger {
 
     const achievement = achievements[achievementId]
     if (achievement) {
-      console.log(`Achievement Unlocked: ${achievement.title}`)
+      gameLogger.debug(`Achievement Unlocked: ${achievement.title}`)
       // Actual UI notification would be implemented here
     }
   }

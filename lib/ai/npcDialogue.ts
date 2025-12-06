@@ -1,4 +1,5 @@
 import { streamText } from "ai"
+import { npcLogger } from "@/lib/logger"
 import { determineAIMode, trackAPIUsage, updateCurrentMode } from "./apiTracking"
 import { aiConfig, models } from "./config"
 import { generateMockNPCResponse, type npcMockResponses } from "./mockResponses"
@@ -55,7 +56,7 @@ export async function* streamNPCResponse(
   const cached = responseCache.getCachedNPCResponse(cacheKey, playerMessage)
 
   if (cached && (mode === "cached" || (mode === "mock" && Math.random() < 0.5))) {
-    console.log(`[NPC] Using cached response in ${mode} mode`)
+    npcLogger.debug(`Using cached response in ${mode} mode`)
     // Stream the cached response
     const words = cached.split(" ")
     for (const word of words) {
@@ -67,7 +68,7 @@ export async function* streamNPCResponse(
 
   // Use mock response if in mock mode
   if (mode === "mock") {
-    console.log("[NPC] Using mock response")
+    npcLogger.debug("Using mock response")
     const mockResponse = generateMockNPCResponse(
       context.npcType as keyof typeof npcMockResponses,
       "dialogue"
@@ -124,7 +125,7 @@ If there's danger, balance your personality with appropriate concern.`
     // Cache the real response
     responseCache.cacheNPCResponse(context.npcType, playerMessage, fullResponse, 0.9)
   } catch (error) {
-    console.error("Failed to stream NPC response:", error)
+    npcLogger.error("Failed to stream NPC response:", error)
     // Fallback to mock
     const mockResponse = generateMockNPCResponse(
       context.npcType as keyof typeof npcMockResponses,
@@ -148,13 +149,13 @@ export async function generateNPCGreeting(context: NPCContext): Promise<string> 
   const cached = responseCache.getCachedNPCResponse(cacheKey, "greeting")
 
   if (cached && (mode === "cached" || mode === "mock")) {
-    console.log(`[NPC] Using cached greeting in ${mode} mode`)
+    npcLogger.debug(`Using cached greeting in ${mode} mode`)
     return cached
   }
 
   // Use mock greeting if in mock mode
   if (mode === "mock") {
-    console.log("[NPC] Using mock greeting")
+    npcLogger.debug("Using mock greeting")
     const mockGreeting = generateMockNPCResponse(
       context.npcType as keyof typeof npcMockResponses,
       "greeting"
@@ -195,7 +196,7 @@ ${context.currentEvent === "shark_nearby" || context.currentEvent === "shark_att
 
     return greeting
   } catch (error) {
-    console.error("Failed to generate NPC greeting:", error)
+    npcLogger.error("Failed to generate NPC greeting:", error)
     // Fallback to mock
     const mockGreeting = generateMockNPCResponse(
       context.npcType as keyof typeof npcMockResponses,

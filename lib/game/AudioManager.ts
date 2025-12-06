@@ -4,6 +4,8 @@
  * Uses Web Audio API for precise control and browser compatibility
  */
 
+import { audioLogger } from "@/lib/logger"
+
 export type SoundEffect =
   | "ocean_ambience"
   | "shark_tension"
@@ -93,10 +95,10 @@ export class AudioManager {
       this.initialized = true
       this.autoplayBlocked = false
 
-      console.log("[AudioManager] Initialized successfully")
+      audioLogger.info("Initialized successfully")
       return true
     } catch (error) {
-      console.error("[AudioManager] Failed to initialize:", error)
+      audioLogger.error("Failed to initialize:", error)
       return false
     }
   }
@@ -106,7 +108,7 @@ export class AudioManager {
    */
   async preloadAudio(): Promise<void> {
     if (!this.audioContext) {
-      console.warn("[AudioManager] Cannot preload audio - not initialized")
+      audioLogger.warn("Cannot preload audio - not initialized")
       return
     }
 
@@ -133,21 +135,21 @@ export class AudioManager {
       try {
         const response = await fetch(url)
         if (!response.ok) {
-          console.warn(`[AudioManager] Could not load ${url} - using silence`)
+          audioLogger.warn(`Could not load ${url} - using silence`)
           return
         }
         const arrayBuffer = await response.arrayBuffer()
         const audioBuffer = await this.audioContext!.decodeAudioData(arrayBuffer)
         this.buffers.set(key as SoundEffect, audioBuffer)
-        console.log(`[AudioManager] Loaded ${key}`)
+        audioLogger.debug(`Loaded ${key}`)
       } catch (error) {
-        console.warn(`[AudioManager] Failed to load ${key}:`, error)
+        audioLogger.warn(`Failed to load ${key}:`, error)
         // Continue loading other sounds even if one fails
       }
     })
 
     await Promise.all(loadPromises)
-    console.log(`[AudioManager] Preloaded ${this.buffers.size} sounds`)
+    audioLogger.info(`Preloaded ${this.buffers.size} sounds`)
   }
 
   /**
@@ -163,7 +165,7 @@ export class AudioManager {
 
     const buffer = this.buffers.get(sound)
     if (!buffer) {
-      console.warn(`[AudioManager] Sound not loaded: ${sound}`)
+      audioLogger.warn(`Sound not loaded: ${sound}`)
       return null
     }
 
@@ -180,7 +182,7 @@ export class AudioManager {
       const busGainNode = isMusic ? this.musicGainNode : this.sfxGainNode
 
       if (!busGainNode) {
-        console.warn("[AudioManager] Gain node not initialized")
+        audioLogger.warn("Gain node not initialized")
         return null
       }
 
@@ -215,7 +217,7 @@ export class AudioManager {
 
       return id
     } catch (error) {
-      console.error(`[AudioManager] Error playing ${sound}:`, error)
+      audioLogger.error(`Error playing ${sound}:`, error)
       return null
     }
   }
@@ -246,7 +248,7 @@ export class AudioManager {
         this.activeSounds.delete(id)
       }
     } catch (error) {
-      console.error("[AudioManager] Error stopping sound:", error)
+      audioLogger.error("Error stopping sound:", error)
       this.activeSounds.delete(id)
     }
   }
@@ -363,7 +365,7 @@ export class AudioManager {
     try {
       localStorage.setItem("beachPanicAudioSettings", JSON.stringify(this.settings))
     } catch (error) {
-      console.warn("[AudioManager] Could not save settings:", error)
+      audioLogger.warn("Could not save settings:", error)
     }
   }
 
@@ -377,7 +379,7 @@ export class AudioManager {
         this.settings = { ...DEFAULT_SETTINGS, ...JSON.parse(saved) }
       }
     } catch (error) {
-      console.warn("[AudioManager] Could not load settings:", error)
+      audioLogger.warn("Could not load settings:", error)
       this.settings = { ...DEFAULT_SETTINGS }
     }
   }
