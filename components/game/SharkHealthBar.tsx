@@ -91,7 +91,7 @@ export function SharkHealthBar({
               <div className="flex-1">
                 <div className={`relative ${barHeight} bg-black/30 rounded-full overflow-hidden border border-red-900/40`}>
                   <motion.div
-                    className={`absolute inset-y-0 left-0 rounded-full ${getHealthBarColor()}`}
+                    className={`absolute inset-y-0 left-0 rounded-full ${getHealthBarColor()} ${getHealthBarGlow()}`}
                     initial={{ width: `${healthPercent}%` }}
                     animate={{ width: `${healthPercent}%` }}
                     transition={{ duration: 0.3, ease: "easeOut" }}
