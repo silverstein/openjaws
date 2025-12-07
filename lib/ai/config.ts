@@ -1,20 +1,39 @@
+import { createGateway } from "@ai-sdk/gateway"
 import { anthropic } from "@ai-sdk/anthropic"
 import { google } from "@ai-sdk/google"
 import { openai } from "@ai-sdk/openai"
 
-// Model configurations with cost optimization
+// Gateway configuration (no custom endpoint required; default is ai-gateway.vercel.sh)
+const aiGatewayConfig = {
+  apiKey: process.env["AI_GATEWAY_API_KEY"] || process.env["VERCEL_AI_GATEWAY_API_KEY"],
+  endpoint: process.env["AI_GATEWAY_ENDPOINT"], // optional override; defaults to SDK base URL
+}
+
+// Allow overriding the model id via env; prefer current Claude 4.5 naming
+const SHARK_MODEL_ID =
+  process.env["NEXT_PUBLIC_SHARK_MODEL"] || process.env["SHARK_MODEL"] || "claude-4.5-sonnet"
+
+// If a gateway key is present, use the Gateway provider (default base URL). Otherwise fall back
+// to vendor SDK clients. Base URL override is optional and only needed for self-hosted gateway.
+const gateway = aiGatewayConfig.apiKey
+  ? createGateway({
+      apiKey: aiGatewayConfig.apiKey,
+      baseURL: aiGatewayConfig.endpoint,
+    })
+  : null
+
 export const models = {
   // Claude 4.5 - Primary model for shark intelligence
-  sharkBrain: anthropic("claude-4-5-sonnet-latest"),
+  sharkBrain: gateway ? gateway(SHARK_MODEL_ID as string) : anthropic(SHARK_MODEL_ID as string),
 
   // Gemini 2.5 Flash - Cost-efficient for NPCs
-  npcDialogue: google("gemini-2.5-flash-latest"),
+  npcDialogue: gateway ? gateway("google/gemini-2.5-flash-preview") : google("gemini-2.5-flash-preview"),
 
   // GPT-5.1 - Backup model for complex scenarios
-  complexDecisions: openai("gpt-5.1"),
+  complexDecisions: gateway ? gateway("openai/gpt-5.1") : openai("gpt-5.1"),
 
   // Commentary model (using Gemini for cost efficiency)
-  commentary: google("gemini-2.5-flash-latest"),
+  commentary: gateway ? gateway("google/gemini-2.5-flash-preview") : google("gemini-2.5-flash-preview"),
 } as const
 
 // Cost-optimized model selection
@@ -33,12 +52,8 @@ export function selectModel(purpose: "shark" | "npc" | "commentary" | "complex")
   }
 }
 
-// AI Gateway configuration (when available)
-export const aiGatewayConfig = {
-  enabled: process.env["AI_GATEWAY_ENABLED"] === "true",
-  endpoint: process.env["AI_GATEWAY_ENDPOINT"],
-  apiKey: process.env["AI_GATEWAY_API_KEY"],
-}
+// Expose gateway config for callers that need to branch
+export { aiGatewayConfig }
 
 // Rate limiting and caching configurations
 export const aiConfig = {

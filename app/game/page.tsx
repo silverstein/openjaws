@@ -57,35 +57,8 @@ function GamePageContent() {
             </div>
           )}
 
-          {/* Desktop: Always visible instructions */}
-          <div className="hidden sm:block bg-black/50 backdrop-blur-sm rounded-lg p-3 md:p-4">
-            <h2 className="text-white font-bold text-sm md:text-base mb-2">Beach Panic</h2>
-            <div className="text-white/80 text-xs md:text-sm space-y-0.5 md:space-y-1">
-              <p>🏊 WASD / Arrows to move</p>
-              <p>📸 F = Selfie (near shark)</p>
-              <p>📱 SPACE = Go Live</p>
-              <p>🎯 Complete objectives!</p>
-            </div>
-          </div>
         </div>
 
-        {/* Character info - hidden on small mobile */}
-        <div className="absolute top-2 right-2 sm:top-4 sm:right-4 bg-black/50 backdrop-blur-sm rounded-lg p-2 sm:p-3 max-w-[140px] sm:max-w-xs hidden xs:block">
-          <div className="text-white text-xs sm:text-sm">
-            <p className="font-bold">📱 Influencer</p>
-            <p className="text-white/60 text-[10px] sm:text-xs hidden sm:block">SPACE = Go Live</p>
-          </div>
-        </div>
-
-        {/* Bottom hint - responsive */}
-        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 sm:bottom-4">
-          <div className="bg-black/40 backdrop-blur-sm rounded-full px-3 py-1.5 sm:px-4 sm:py-2">
-            <p className="text-white/70 text-[10px] sm:text-xs text-center">
-              <span className="hidden sm:inline">Press ESC to return to lobby</span>
-              <span className="sm:hidden">Tap ? for help</span>
-            </p>
-          </div>
-        </div>
       </div>
     </main>
   )

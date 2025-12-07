@@ -134,8 +134,8 @@ export default function Minimap({
 
   // In landscape mobile, position top-center to avoid side controls
   const positionClasses = isTouchDevice && isLandscape
-    ? "fixed top-2 left-1/2 -translate-x-1/2 z-40"
-    : "fixed top-12 right-2 sm:top-4 sm:right-4 z-40";
+    ? "fixed top-2 left-2 z-40"
+    : "fixed top-3 left-3 sm:top-4 sm:left-4 z-40";
 
   return (
     <div

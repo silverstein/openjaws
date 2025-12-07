@@ -9,6 +9,7 @@ import { audioLogger } from "@/lib/logger"
 export type SoundEffect =
   | "ocean_ambience"
   | "shark_tension"
+  | "lobby_music"
   | "bite"
   | "npc_chime"
   | "ability_activate"
@@ -115,6 +116,7 @@ export class AudioManager {
     const soundFiles: Record<SoundEffect, string> = {
       ocean_ambience: "/audio/ocean_ambience.mp3",
       shark_tension: "/audio/shark_tension.mp3",
+      lobby_music: "/audio/lobby_music.mp3",
       bite: "/audio/bite.mp3",
       npc_chime: "/audio/npc_chime.mp3",
       ability_activate: "/audio/ability_activate.mp3",
@@ -178,7 +180,7 @@ export class AudioManager {
       const volume = options.volume ?? 1.0
 
       // Connect to appropriate bus (music or sfx)
-      const isMusic = sound === "ocean_ambience" || sound === "shark_tension"
+      const isMusic = sound === "ocean_ambience" || sound === "shark_tension" || sound === "lobby_music"
       const busGainNode = isMusic ? this.musicGainNode : this.sfxGainNode
 
       if (!busGainNode) {

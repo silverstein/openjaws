@@ -55,224 +55,76 @@ export function SharkHealthBar({
 
   // In landscape mobile, position to not overlap with minimap (which is top-center)
   const topPosition = isCompact && isLandscape ? "top-2" : isCompact ? "top-12" : "top-6"
+  const containerWidth = isCompact ? "max-w-[260px]" : "max-w-[420px]"
+  const barHeight = isCompact ? "h-3" : "h-[14px]"
+  const paddingX = isCompact ? "px-2.5" : "px-4"
+  const paddingY = isCompact ? "py-1.5" : "py-2.5"
 
   return (
     <AnimatePresence>
       {isVisible && (
         <motion.div
-          className={`fixed ${topPosition} left-1/2 -translate-x-1/2 z-40 w-full ${isCompact ? 'max-w-[280px] px-2' : 'max-w-2xl px-4'}`}
-          initial={{ y: -100, opacity: 0 }}
+          className={`fixed ${topPosition} left-1/2 -translate-x-1/2 z-40 w-full ${containerWidth} ${isCompact ? 'px-2' : 'px-3'}`}
+          initial={{ y: -64, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          exit={{ y: -100, opacity: 0 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
+          exit={{ y: -64, opacity: 0 }}
+          transition={{ duration: 0.3, ease: "easeOut" }}
           style={isCompact ? { paddingTop: "env(safe-area-inset-top, 0px)" } : undefined}
         >
-          <div className="relative">
-            {/* Boss health bar container */}
-            <motion.div
-              className={`
-                bg-black/90 rounded-lg border-2 border-red-900
-                shadow-2xl overflow-hidden backdrop-blur-sm
-                ${isLowHealth ? "animate-pulse" : ""}
-              `}
-              animate={
-                showDamage
-                  ? {
-                      scale: [1, 1.02, 1],
-                      borderColor: ["rgb(127,29,29)", "rgb(239,68,68)", "rgb(127,29,29)"],
-                    }
-                  : {}
-              }
-              transition={{ duration: 0.3 }}
-            >
-              {/* Header section - compact on mobile */}
-              <div className={`bg-gradient-to-b from-red-900/50 to-transparent ${isCompact ? 'px-2 py-1' : 'px-4 py-2'} flex items-center justify-between border-b border-red-900/50`}>
-                <div className={`flex items-center ${isCompact ? 'gap-1.5' : 'gap-3'}`}>
-                  <motion.span
-                    className={isCompact ? "text-lg" : "text-3xl"}
-                    animate={
-                      isLowHealth
-                        ? {
-                            scale: [1, 1.2, 1],
-                            rotate: [0, -10, 10, 0],
-                          }
-                        : {}
-                    }
-                    transition={{
-                      duration: 0.5,
-                      repeat: isLowHealth ? Infinity : 0,
-                      repeatDelay: 0.5,
-                    }}
-                  >
-                    🦈
-                  </motion.span>
-                  <div>
-                    <h2
-                      className={`
-                      font-bold ${isCompact ? 'text-xs' : 'text-lg'} tracking-wider uppercase
-                      ${isCriticalHealth ? "text-red-400 animate-pulse" : "text-red-500"}
-                    `}
-                      style={{
-                        textShadow: "0 0 10px rgba(239, 68, 68, 0.5)",
-                      }}
-                    >
-                      JAWS
-                    </h2>
-                    {!isCompact && <p className="text-red-300/70 text-xs">Apex Predator</p>}
-                  </div>
-                </div>
-
-                {/* HP Text */}
-                <div className="text-right">
-                  <motion.div
-                    className={`font-mono ${isCompact ? 'text-xs' : 'text-lg'} font-bold text-white`}
-                    key={currentHP}
-                    initial={{ scale: 1.2, color: "#fca5a5" }}
-                    animate={{ scale: 1, color: "#ffffff" }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    {Math.ceil(currentHP)}/{maxHP}
-                  </motion.div>
-                  {!isCompact && <div className="text-red-300/70 text-xs">HP</div>}
-                </div>
+          <motion.div
+            className={`bg-black/35 backdrop-blur-[6px] border border-red-900/30 rounded-full shadow-sm ${paddingX} ${paddingY}`}
+            animate={showDamage ? { scale: [1, 1.02, 1] } : {}}
+            transition={{ duration: 0.22 }}
+          >
+            <div className="flex items-center gap-3 w-full">
+              <div className="flex items-center gap-2 min-w-[78px]">
+                <motion.span
+                  className={isCompact ? "text-sm" : "text-base"}
+                  animate={isLowHealth ? { scale: [1, 1.1, 1] } : {}}
+                  transition={{ duration: 0.45, repeat: isLowHealth ? Infinity : 0, repeatDelay: 0.6 }}
+                >
+                  🦈
+                </motion.span>
+                <span className="text-[11px] text-white font-semibold tracking-wide">JAWS</span>
               </div>
 
-              {/* Health bar section */}
-              <div className={isCompact ? "px-2 py-1.5" : "px-4 py-3"}>
-                <div className={`relative ${isCompact ? 'h-4' : 'h-8'} bg-black/50 rounded-full border border-red-900/50 overflow-hidden`}>
-                  {/* Background grid pattern */}
-                  <div
-                    className="absolute inset-0 opacity-10"
-                    style={{
-                      backgroundImage:
-                        "linear-gradient(90deg, rgba(239,68,68,0.1) 1px, transparent 1px)",
-                      backgroundSize: "20px 100%",
-                    }}
-                  />
-
-                  {/* Main health bar */}
+              <div className="flex-1">
+                <div className={`relative ${barHeight} bg-black/30 rounded-full overflow-hidden border border-red-900/40`}>
                   <motion.div
-                    className={`
-                      absolute inset-y-0 left-0 rounded-full
-                      ${getHealthBarColor()}
-                      ${getHealthBarGlow()}
-                    `}
+                    className={`absolute inset-y-0 left-0 rounded-full ${getHealthBarColor()}`}
                     initial={{ width: `${healthPercent}%` }}
                     animate={{ width: `${healthPercent}%` }}
-                    transition={{
-                      duration: 0.4,
-                      ease: "easeOut",
-                    }}
-                  >
-                    {/* Animated shine effect */}
-                    <motion.div
-                      className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
-                      animate={{
-                        x: ["-100%", "200%"],
-                      }}
-                      transition={{
-                        duration: 2,
-                        repeat: Infinity,
-                        repeatDelay: 1,
-                        ease: "linear",
-                      }}
-                    />
-                  </motion.div>
-
-                  {/* Depleting health bar (shows damage) */}
-                  <motion.div
-                    className="absolute inset-y-0 left-0 bg-red-400/50 rounded-full"
-                    initial={{ width: `${(prevHP / maxHP) * 100}%` }}
-                    animate={{ width: `${healthPercent}%` }}
-                    transition={{
-                      duration: 0.6,
-                      ease: "easeOut",
-                    }}
+                    transition={{ duration: 0.3, ease: "easeOut" }}
+                    style={{ boxShadow: "0 0 8px rgba(239,68,68,0.35) inset" }}
                   />
-
-                  {/* Percentage text overlay */}
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span
-                      className={`font-bold ${isCompact ? 'text-[10px]' : 'text-sm'} text-white drop-shadow-lg`}
-                      style={{ textShadow: "0 0 4px rgba(0,0,0,0.8)" }}
-                    >
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <span className={`text-[10px] font-semibold text-white/90 drop-shadow`}>
                       {Math.round(healthPercent)}%
                     </span>
                   </div>
-
-                  {/* Critical health warning pulse */}
-                  {isCriticalHealth && (
-                    <motion.div
-                      className="absolute inset-0 border-2 border-red-500 rounded-full"
-                      animate={{
-                        opacity: [0.8, 0.2, 0.8],
-                        scale: [1, 1.05, 1],
-                      }}
-                      transition={{
-                        duration: 0.8,
-                        repeat: Infinity,
-                        ease: "easeInOut",
-                      }}
-                    />
-                  )}
                 </div>
-
-                {/* Segment markers (visual only) - hide on compact */}
-                {!isCompact && (
-                  <div className="absolute top-0 left-4 right-4 h-8 flex items-center pointer-events-none mt-3">
-                    {[...Array(4)].map((_, i) => (
-                      <div
-                        key={i}
-                        className="flex-1 border-r border-black/30 last:border-r-0 h-full"
-                      />
-                    ))}
-                  </div>
-                )}
               </div>
 
-              {/* Warning text for low health - hide on compact */}
-              {isLowHealth && !isCompact && (
-                <motion.div
-                  className="px-4 pb-2"
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                >
-                  <div
-                    className={`
-                    text-center text-xs font-bold tracking-wider
-                    ${isCriticalHealth ? "text-red-400" : "text-red-500"}
-                  `}
-                  >
-                    {isCriticalHealth ? "⚠️ CRITICAL DAMAGE ⚠️" : "⚡ LOW HEALTH ⚡"}
-                  </div>
-                </motion.div>
-              )}
-            </motion.div>
+              <div className="flex items-center gap-2 min-w-[96px] justify-end">
+                <span className="text-[10px] font-mono text-white/80">{Math.ceil(currentHP)} / {maxHP}</span>
+              </div>
+            </div>
+          </motion.div>
 
-            {/* Damage number popup */}
-            <AnimatePresence>
-              {showDamage && lastDamage && lastDamage > 0 && (
-                <motion.div
-                  className={`absolute ${isCompact ? '-bottom-4' : '-bottom-8'} left-1/2 -translate-x-1/2`}
-                  initial={{ y: 0, opacity: 0, scale: 0.5 }}
-                  animate={{ y: isCompact ? 5 : 10, opacity: 1, scale: 1 }}
-                  exit={{ y: isCompact ? 15 : 30, opacity: 0, scale: 0.8 }}
-                  transition={{ duration: 0.5, ease: "easeOut" }}
-                >
-                  <div
-                    className={`font-bold ${isCompact ? 'text-sm' : 'text-2xl'} text-red-400`}
-                    style={{
-                      textShadow:
-                        "0 0 10px rgba(239,68,68,0.8), 2px 2px 4px rgba(0,0,0,0.8)",
-                    }}
-                  >
-                    -{Math.ceil(lastDamage)}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+          {/* Damage popup */}
+          <AnimatePresence>
+            {showDamage && lastDamage && lastDamage > 0 && (
+              <motion.div
+                className="absolute left-1/2 top-full mt-1 -translate-x-1/2"
+                initial={{ y: -5, opacity: 0, scale: 0.8 }}
+                animate={{ y: 0, opacity: 1, scale: 1 }}
+                exit={{ y: 10, opacity: 0, scale: 0.9 }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
+              >
+                <div className={`font-bold ${isCompact ? 'text-sm' : 'text-base'} text-red-300 drop-shadow`}>-{Math.ceil(lastDamage)}</div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
       )}
     </AnimatePresence>

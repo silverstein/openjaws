@@ -29,7 +29,7 @@ import { BeachItemSpawner } from "@/lib/game/systems/BeachItemSpawner"
 import type { BeachItem } from "@/lib/game/entities/BeachItem"
 import { ThrownItem } from "@/lib/game/entities/ThrownItem"
 import { createBeachNPCs, NPC, repositionNPCs } from "@/lib/game/entities/NPC"
-import { Player } from "@/lib/game/entities/Player"
+import { Player, type CharacterType } from "@/lib/game/entities/Player"
 import { Shark } from "@/lib/game/entities/Shark"
 import { ChromaticAberrationFilter } from "@/lib/game/filters/ChromaticAberration"
 import { createWaterShader, WaterShader } from "@/lib/game/shaders/WaterShader"
@@ -110,12 +110,47 @@ export function GameCanvas() {
   const playerPointsRef = useRef(playerPoints)
   const playerFishInventoryRef = useRef(playerFishInventory)
 
-  // Track 10 UI state
+  // Player identity/archetype from lobby/session
+  const [playerIdentity] = useState(() => {
+    if (typeof window === "undefined") {
+      return { archetype: "influencer" as CharacterType, userId: "player_1", playerName: "Player" }
+    }
+    const params = new URLSearchParams(window.location.search)
+    const urlArch = params.get("archetype")
+    const storedArch = sessionStorage.getItem("selectedArchetype")
+    const rawArch = urlArch || storedArch || "influencer"
+    const mapArchetype = (id: string | null): CharacterType => {
+      switch (id) {
+        case "boomer_dad":
+          return "boomerDad"
+        case "surfer_bro":
+          return "surferBro"
+        case "lifeguard":
+          return "lifeguard"
+        case "marine_biologist":
+          return "marineBiologist"
+        case "spring_breaker":
+          return "springBreaker"
+        case "influencer":
+        default:
+          return "influencer"
+      }
+    }
+    const archetype = mapArchetype(rawArch)
+    const userId = params.get("userId") || sessionStorage.getItem("userId") || "player_1"
+    const playerName = params.get("name") || sessionStorage.getItem("playerName") || "Player"
+    return { archetype, userId, playerName }
+  })
+
+  // Track UI state
   const [sharkHP, setSharkHP] = useState({ current: 150, max: 150 })
   const [lastSharkDamage, setLastSharkDamage] = useState<number | undefined>()
   const [victoryScreenVisible, setVictoryScreenVisible] = useState(false)
   const [playerStats, setPlayerStats] = useState({ damageDealt: 0, selfiesTaken: 0, deaths: 0 })
   const [minimapVisible, setMinimapVisible] = useState(true)
+  const [hudVisible, setHudVisible] = useState(true)
+  const [controlsOpen, setControlsOpen] = useState(false)
+  const [aiExpanded, setAiExpanded] = useState(false)
   const [canPickupItem, setCanPickupItem] = useState(false)
   const playerStatsRef = useRef(playerStats)
   playerStatsRef.current = playerStats
@@ -131,11 +166,16 @@ export function GameCanvas() {
   // Touch device detection
   const isTouchDevice = useIsTouchDevice()
 
+  // Reset AI panel when HUD hides
+  useEffect(() => {
+    if (!hudVisible) setAiExpanded(false)
+  }, [hudVisible])
+
   // Touch controls state
   const touchMovement = useRef({ dx: 0, dy: 0 })
 
   // Audio system
-  const { playSound, stopSound, autoplayBlocked } = useGameAudio()
+  const { playSound, stopSound, stopAllSounds, autoplayBlocked, initializeAudio } = useGameAudio()
   const audioRefs = useRef({
     oceanAmbience: null as string | null,
     sharkTension: null as string | null,
@@ -197,6 +237,9 @@ export function GameCanvas() {
     appRef.current = app
 
     const initGame = async () => {
+      // Stop any lobby music that might be playing
+      stopAllSounds("lobby_music")
+
       // Load game assets first
       await assetLoader.loadAssets((progress) => {
         setLoadingProgress(Math.round(progress * 100))
@@ -279,13 +322,18 @@ export function GameCanvas() {
       sharkHealthBarRef.current = sharkHealthBar
       uiLayer.addChild(sharkHealthBar.getContainer())
 
-      // Create player with a mock userId for now
+      // Create player with chosen archetype/userId
       const player = new Player(
         app.screen.width / 2,
         app.screen.height / 2,
-        "influencer",
-        "player_1"
+        playerIdentity.archetype,
+        playerIdentity.userId
       )
+      // Apply chosen display name
+      ;(player as any).name = playerIdentity.playerName || player.name
+      if ((player as any).nameText) {
+        ;(player as any).nameText.text = playerIdentity.playerName || player.name
+      }
       playerRef.current = player
       entityLayer.addChild(player.container)
 
@@ -410,12 +458,25 @@ export function GameCanvas() {
       }
       gameLogger.debug("Created beach item spawner")
 
-      // Start ocean ambience (if audio is initialized)
-      if (!autoplayBlocked) {
+      // Start ocean ambience once audio is allowed
+      const startOcean = () => {
         const oceanId = playSound("ocean_ambience", { loop: true, volume: 0.4, fadeIn: 2 })
         if (oceanId) {
           audioRefs.current.oceanAmbience = oceanId
         }
+      }
+
+      if (!autoplayBlocked) {
+        startOcean()
+      } else {
+        const resumeHandler = async () => {
+          const ok = await initializeAudio()
+          if (ok) {
+            startOcean()
+          }
+        }
+        window.addEventListener("pointerdown", resumeHandler, { once: true })
+        window.addEventListener("keydown", resumeHandler, { once: true })
       }
 
       // Handle keyboard input
@@ -499,6 +560,16 @@ export function GameCanvas() {
         // Return to lobby on ESC
         if (e.key === "Escape") {
           window.location.href = "/lobby"
+        }
+
+        // HUD toggle
+        if (key === "h") {
+          setHudVisible(prev => !prev)
+        }
+
+        // Controls overlay toggle
+        if (key === "c") {
+          setControlsOpen(prev => !prev)
         }
 
         // Interact with ice cream stand, fish market, secret room, or NPC on E
@@ -2141,23 +2212,29 @@ export function GameCanvas() {
       />
 
       {/* AI Decision Display */}
-      <AIDecisionDisplay
-        personality={sharkAIState.personality}
-        currentThought={aiThoughts}
-        hunger={sharkAIState.hunger}
-        rage={sharkAIState.rage}
-        currentTarget={sharkAIState.currentTarget}
-        patternRecognized={patternRecognized}
-      />
+      {hudVisible && aiExpanded && (
+        <div className="fixed bottom-4 right-4 z-40 max-w-sm">
+          <AIDecisionDisplay
+            personality={sharkAIState.personality}
+            currentThought={aiThoughts}
+            hunger={sharkAIState.hunger}
+            rage={sharkAIState.rage}
+            currentTarget={sharkAIState.currentTarget}
+            patternRecognized={patternRecognized}
+          />
+        </div>
+      )}
 
       {/* Psychological Warfare Components */}
-      <SharkCommentary
-        personality={sharkAIState.personality}
-        isThinking={isSharkThinking}
-        currentThought={sharkCommentary}
-        targetName="Player"
-        recognition={playerRecognition}
-      />
+      {hudVisible && (
+        <SharkCommentary
+          personality={sharkAIState.personality}
+          isThinking={isSharkThinking}
+          currentThought={sharkCommentary}
+          targetName="Player"
+          recognition={playerRecognition}
+        />
+      )}
 
       <PersonalizedTaunts
         sharkPosition={{
@@ -2185,12 +2262,14 @@ export function GameCanvas() {
       <VolumeControl />
 
       {/* Shark Health Bar UI (React component) */}
-      <SharkHealthBarUI
-        currentHP={sharkHP.current}
-        maxHP={sharkHP.max}
-        lastDamage={lastSharkDamage}
-        isVisible={!victoryScreenVisible}
-      />
+      {hudVisible && (
+        <SharkHealthBarUI
+          currentHP={sharkHP.current}
+          maxHP={sharkHP.max}
+          lastDamage={lastSharkDamage}
+          isVisible={!victoryScreenVisible}
+        />
+      )}
 
       {/* Victory Screen */}
       <VictoryScreen
@@ -2203,16 +2282,35 @@ export function GameCanvas() {
       />
 
       {/* Minimap */}
-      <Minimap
-        playerPos={{ x: playerRef.current?.x || 0, y: playerRef.current?.y || 0 }}
-        sharkPos={{ x: sharkRef.current?.x || 0, y: sharkRef.current?.y || 0 }}
-        sharkRotation={0}
-        stations={harpoonStationsRef.current.map(s => ({ x: s.x, y: s.y }))}
-        worldSize={{ width: typeof window !== 'undefined' ? window.innerWidth : 800, height: typeof window !== 'undefined' ? window.innerHeight : 600 }}
-        waterLineY={typeof window !== 'undefined' ? window.innerHeight * 0.3 : 180}
-        visible={minimapVisible}
-        onToggle={() => setMinimapVisible(!minimapVisible)}
-      />
+      {hudVisible && (
+        <div className="fixed top-2 left-2 sm:top-3 sm:left-3 z-30 flex flex-col gap-2 sm:gap-3">
+          <Minimap
+            playerPos={{ x: playerRef.current?.x || 0, y: playerRef.current?.y || 0 }}
+            sharkPos={{ x: sharkRef.current?.x || 0, y: sharkRef.current?.y || 0 }}
+            sharkRotation={0}
+            stations={harpoonStationsRef.current.map(s => ({ x: s.x, y: s.y }))}
+            worldSize={{ width: typeof window !== 'undefined' ? window.innerWidth : 800, height: typeof window !== 'undefined' ? window.innerHeight : 600 }}
+            waterLineY={typeof window !== 'undefined' ? window.innerHeight * 0.3 : 180}
+            visible={minimapVisible}
+            onToggle={() => setMinimapVisible(!minimapVisible)}
+          />
+        </div>
+      )}
+
+      {/* Shark AI badge */}
+      {hudVisible && (
+        <button
+          type="button"
+          onClick={() => setAiExpanded(prev => !prev)}
+          className="fixed bottom-4 right-4 z-30 bg-purple-600/80 hover:bg-purple-600 text-white text-sm px-3 py-2 rounded-lg shadow-md backdrop-blur flex items-center gap-2 transition"
+        >
+          <span>🧠</span>
+          <span className="text-xs sm:text-sm line-clamp-1 max-w-[160px]">
+            {aiThoughts || "Processing..."}
+          </span>
+          <span className="text-[11px] text-white/80">{aiExpanded ? "Close" : "Open"}</span>
+        </button>
+      )}
 
       {/* Touch Action Buttons - pickup and throw items */}
       <TouchActionButtons
@@ -2277,62 +2375,63 @@ export function GameCanvas() {
         />
       )}
 
-      {/* Player Status - moved to middle right to avoid overlap */}
-      <div className="absolute top-1/2 right-4 transform -translate-y-1/2 bg-black/50 text-white p-4 rounded-lg">
-        <h3 className="text-sm font-bold mb-2">Player Status</h3>
-        <div className="text-xs space-y-2">
-          <div>
-            <div className="mb-1">Health: {Math.round(playerRef.current?.health || 100)}%</div>
-            <div className="w-32 h-2 bg-gray-700 rounded">
-              <div
-                className="h-full bg-red-500 rounded transition-all"
-                style={{ width: `${playerRef.current?.health || 100}%` }}
-              />
-            </div>
+      {/* Player Status - stacked near top-right */}
+      {hudVisible && (
+        <div className="fixed top-3 right-3 sm:top-4 sm:right-4 z-30 bg-black/50 text-white px-3 py-2.5 sm:px-4 sm:py-3 rounded-lg shadow-md w-48 sm:w-56 backdrop-blur">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-bold">Player</h3>
+            <div className="text-[11px] text-white/70 font-mono">💰 {playerPoints}</div>
           </div>
-          <div>
-            <div className="mb-1">Stamina: {Math.round(playerRef.current?.stamina || 100)}%</div>
-            <div className="w-32 h-2 bg-gray-700 rounded">
-              <div
-                className={`h-full rounded transition-all ${
-                  (playerRef.current?.stamina || 100) > 50
-                    ? "bg-green-500"
-                    : (playerRef.current?.stamina || 100) > 25
-                      ? "bg-yellow-500"
-                      : "bg-red-500"
-                }`}
-                style={{ width: `${(playerRef.current?.stamina ?? 100)}%` }}
-              />
+          <div className="space-y-2 text-xs">
+            <div>
+              <div className="flex justify-between mb-1">
+                <span className="text-white/70">HP</span>
+                <span>{Math.round(playerRef.current?.health || 100)}%</span>
+              </div>
+              <div className="w-full h-2 bg-white/10 rounded">
+                <div
+                  className="h-full bg-red-500 rounded transition-all"
+                  style={{ width: `${playerRef.current?.health || 100}%` }}
+                />
+              </div>
             </div>
-          </div>
-          {playerRef.current && playerRef.current.stamina !== undefined && playerRef.current.stamina < 25 && playerRef.current.isInWater && (
-            <div className="text-red-400 text-xs animate-pulse">⚠️ Low stamina!</div>
-          )}
-          {orangeBuffActive && (
-            <div className="text-orange-400 text-xs animate-pulse flex items-center gap-1">
-              🍊 Speed Boost! ({orangeBuffTimeLeft}s)
+            <div>
+              <div className="flex justify-between mb-1">
+                <span className="text-white/70">Stam</span>
+                <span>{Math.round(playerRef.current?.stamina || 100)}%</span>
+              </div>
+              <div className="w-full h-2 bg-white/10 rounded">
+                <div
+                  className={`h-full rounded transition-all ${
+                    (playerRef.current?.stamina || 100) > 50
+                      ? "bg-green-500"
+                      : (playerRef.current?.stamina || 100) > 25
+                        ? "bg-yellow-500"
+                        : "bg-red-500"
+                  }`}
+                  style={{ width: `${(playerRef.current?.stamina ?? 100)}%` }}
+                />
+              </div>
             </div>
-          )}
-          {heldBeachItemRef.current && (
-            <div className="text-cyan-400 text-xs flex items-center gap-1">
-              🏖️ Holding: {heldBeachItemRef.current.type}
-            </div>
-          )}
-          <div className="border-t border-white/20 pt-2 mt-2">
-            <div className="text-yellow-400 font-bold">💰 {playerPoints} pts</div>
-            <div className="text-cyan-400">🐟 {playerFishInventory.length} fish</div>
-            {playerFishInventory.length > 0 && (
-              <div className="text-xs text-gray-400">
-                {playerFishInventory.slice(0, 3).join(", ")}
-                {playerFishInventory.length > 3 && `...+${playerFishInventory.length - 3}`}
+            {orangeBuffActive && (
+              <div className="text-orange-300 text-[11px] flex items-center gap-1">
+                🍊 Speed ({orangeBuffTimeLeft}s)
               </div>
             )}
+            {heldBeachItemRef.current && (
+              <div className="text-cyan-300 text-[11px] flex items-center gap-1">
+                🏖️ {heldBeachItemRef.current.type}
+              </div>
+            )}
+            <div className="flex items-center gap-2 text-[11px] text-cyan-200">
+              🐟 {playerFishInventory.length}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Touch Controls - only on touch devices */}
-      {isTouchDevice && (
+      {isTouchDevice && hudVisible && (
         <TouchControls
           onMove={handleTouchMove}
           onAbility={handleAbility}
@@ -2342,45 +2441,55 @@ export function GameCanvas() {
         />
       )}
 
-      {/* Controls Hint - responsive sizing and content */}
-      {!isTouchDevice && (
-        <div className="absolute bottom-4 left-4 bg-black/40 text-white p-2 sm:p-3 rounded-lg text-xs sm:text-sm backdrop-blur-sm">
-          <div className="grid grid-cols-2 gap-x-3 sm:gap-x-4 gap-y-1">
-            <span className="text-gray-400">Move:</span>
-            <span>WASD / Arrows</span>
-            <span className="text-gray-400">Ability:</span>
-            <span>Space</span>
-            <span className="text-gray-400">Selfie/Harpoon:</span>
-            <span>F</span>
-            <span className="text-gray-400">Interact:</span>
-            <span>E</span>
-            <span className="text-gray-400">Shop:</span>
-            <span>Q/R (prev/next)</span>
-            <span className="text-gray-400">Throw Bait:</span>
-            <span>T (in water)</span>
-            <span className="text-gray-400">Boat/Sleep:</span>
-            <span>B</span>
-            <span className="text-gray-400">Beach House:</span>
-            <span>X (enter/exit)</span>
-            <span className="text-gray-400">Beach Items:</span>
-            <span>G (pickup) / C (throw)</span>
-            <span className="text-gray-400">Minimap:</span>
-            <span>M (toggle)</span>
-            <span className="text-gray-400">Exit:</span>
-            <span>ESC</span>
-          </div>
+      {/* Controls chip + modal */}
+      {hudVisible && (
+        <div className="fixed bottom-3 left-3 z-30 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setControlsOpen(true)}
+            className="bg-black/55 text-white text-xs sm:text-sm px-3 py-1.5 rounded-full shadow-md backdrop-blur hover:bg-black/70 transition"
+          >
+            Controls (C)
+          </button>
+          <button
+            type="button"
+            onClick={() => setHudVisible(prev => !prev)}
+            className="bg-black/40 text-white/80 text-xs px-2.5 py-1 rounded-full border border-white/10 hover:border-white/30 transition"
+            title="Toggle HUD (H)"
+          >
+            HUD
+          </button>
         </div>
       )}
-      {/* Mobile exit button */}
-      {isTouchDevice && (
-        <button
-          type="button"
-          onClick={() => { window.location.href = "/lobby" }}
-          className="absolute top-2 left-2 bg-black/60 backdrop-blur-sm text-white px-3 py-2 rounded-lg text-xs font-medium flex items-center gap-1.5 active:scale-95 transition-transform z-20"
-          style={{ paddingTop: "max(8px, env(safe-area-inset-top))" }}
-        >
-          ← Exit
-        </button>
+
+      {controlsOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur">
+          <div className="bg-black/80 border border-white/10 rounded-xl p-4 sm:p-6 max-w-md w-[92vw] text-white shadow-2xl">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold">Controls</h3>
+              <button
+                onClick={() => setControlsOpen(false)}
+                className="text-white/70 hover:text-white text-sm px-2 py-1 rounded-md hover:bg-white/10"
+              >
+                Close
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+              <span className="text-white/60">Move</span><span>WASD / Arrows</span>
+              <span className="text-white/60">Ability</span><span>Space</span>
+              <span className="text-white/60">Selfie/Harpoon</span><span>F</span>
+              <span className="text-white/60">Interact</span><span>E</span>
+              <span className="text-white/60">Shop</span><span>Q/R</span>
+              <span className="text-white/60">Throw Bait</span><span>T (water)</span>
+              <span className="text-white/60">Boat/Sleep</span><span>B</span>
+              <span className="text-white/60">Beach House</span><span>X</span>
+              <span className="text-white/60">Items</span><span>G / C</span>
+              <span className="text-white/60">Minimap</span><span>M</span>
+              <span className="text-white/60">HUD</span><span>H</span>
+              <span className="text-white/60">Exit</span><span>ESC</span>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

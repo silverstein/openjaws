@@ -3,11 +3,12 @@
 import { useQuery, useMutation } from "convex/react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { useIsTouchDevice } from "@/hooks/useIsTouchDevice"
 import { useIsLandscape } from "@/hooks/useIsLandscape"
+import { useGameAudio } from "@/hooks/useGameAudio" // Add this import
 
 export default function LobbyPage() {
   const router = useRouter()
@@ -18,6 +19,33 @@ export default function LobbyPage() {
   const [dismissedLandscapeTip, setDismissedLandscapeTip] = useState(false)
   const isTouchDevice = useIsTouchDevice()
   const isLandscape = useIsLandscape()
+  const { initializeAudio, playSound, stopAllSounds } = useGameAudio() // Initialize useGameAudio
+
+  // Lazy-start lobby music after first user interaction (avoids autoplay block)
+  useEffect(() => {
+    let musicId: string | null = null
+    let started = false
+
+    const tryStart = async () => {
+      if (started) return
+      const ok = await initializeAudio()
+      if (ok) {
+        started = true
+        musicId = playSound("lobby_music", { loop: true, volume: 0.5, fadeIn: 2 })
+        window.removeEventListener("pointerdown", tryStart)
+        window.removeEventListener("keydown", tryStart)
+      }
+    }
+
+    window.addEventListener("pointerdown", tryStart)
+    window.addEventListener("keydown", tryStart)
+
+    return () => {
+      window.removeEventListener("pointerdown", tryStart)
+      window.removeEventListener("keydown", tryStart)
+      if (musicId) stopAllSounds()
+    }
+  }, [initializeAudio, playSound, stopAllSounds])
 
   // Get active games
   const activeGames = useQuery(api.games.getActiveGames)
@@ -28,6 +56,9 @@ export default function LobbyPage() {
 
   // Create a new game
   const handleCreateGame = async () => {
+    // Ensure audio is initialized/resumed on user action
+    await initializeAudio();
+
     if (!playerName.trim()) {
       alert("Please enter your name")
       return
@@ -70,6 +101,9 @@ export default function LobbyPage() {
 
   // Join an existing game
   const handleJoinGame = async (gameId: Id<"games">) => {
+    // Ensure audio is initialized/resumed on user action
+    await initializeAudio();
+
     if (!playerName.trim()) {
       alert("Please enter your name")
       return
@@ -225,7 +259,11 @@ export default function LobbyPage() {
               {/* Action buttons */}
               <div className="space-y-3">
                 <Link
-                  href="/game"
+                  href={`/game?archetype=${selectedArchetype}&name=${encodeURIComponent(playerName || "Player")}`}
+                  onClick={() => {
+                    sessionStorage.setItem("selectedArchetype", selectedArchetype)
+                    sessionStorage.setItem("playerName", playerName || "Player")
+                  }}
                   className="block w-full bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white font-bold py-4 px-6 rounded-xl text-center text-base sm:text-lg transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-lg"
                 >
                   🦈 Play Now
