@@ -41,6 +41,7 @@ export class Shark {
 
   // AI parameters
   private patrolSpeed: number = 1.5
+  private readonly defaultHuntingSpeed: number = 3
   private huntingSpeed: number = 3
   private attackSpeed: number = 5
   private detectionRadius: number = 200
@@ -400,6 +401,7 @@ export class Shark {
   private setState(newState: SharkState): void {
     this.currentState = newState
     this.stateTimer = 0
+    this.huntingSpeed = this.defaultHuntingSpeed
 
     // Update state text
     switch (newState) {

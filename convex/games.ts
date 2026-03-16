@@ -254,43 +254,88 @@ export const getGameDetails = query({
   },
 })
 
+// Objective type from schema
+type ObjectiveType =
+  | "selfie_with_shark"
+  | "perfect_sandcastle"
+  | "tiktok_dance"
+  | "sunscreen_application"
+  | "beach_volleyball"
+  | "food_delivery"
+  | "find_lost_item"
+
+interface ObjectiveRequirements {
+  sharkDistance?: number
+  duration?: number
+  buildTime?: number
+  minHeight?: number
+  platform?: boolean
+  coverage?: number
+}
+
+const OBJECTIVE_DATA: Record<ObjectiveType, {
+  title: string
+  description: string
+  points: number
+  requirements: ObjectiveRequirements
+}> = {
+  selfie_with_shark: {
+    title: "Shark Selfie Challenge",
+    description: "Take a selfie with the shark visible in frame",
+    points: 500,
+    requirements: { sharkDistance: 50, duration: 2 },
+  },
+  perfect_sandcastle: {
+    title: "Sandcastle Under Pressure",
+    description: "Build a sandcastle while being chased",
+    points: 300,
+    requirements: { buildTime: 5, minHeight: 3 },
+  },
+  tiktok_dance: {
+    title: "Viral Dance Move",
+    description: "Perform a dance on the platform for 3 seconds",
+    points: 200,
+    requirements: { duration: 3, platform: true },
+  },
+  sunscreen_application: {
+    title: "SPF Safety First",
+    description: "Apply sunscreen for 2 seconds of invulnerability",
+    points: 150,
+    requirements: { duration: 2, coverage: 0.8 },
+  },
+  beach_volleyball: {
+    title: "Beach Volleyball",
+    description: "Play a quick game of beach volleyball",
+    points: 250,
+    requirements: { duration: 5 },
+  },
+  food_delivery: {
+    title: "Food Delivery",
+    description: "Deliver food across the beach",
+    points: 200,
+    requirements: { duration: 10 },
+  },
+  find_lost_item: {
+    title: "Lost and Found",
+    description: "Find a lost item on the beach",
+    points: 175,
+    requirements: {},
+  },
+}
+
 // Helper functions
 function getObjectiveTitle(type: string): string {
-  const titles: Record<string, string> = {
-    selfie_with_shark: "Shark Selfie Challenge",
-    perfect_sandcastle: "Sandcastle Under Pressure",
-    tiktok_dance: "Viral Dance Move",
-    sunscreen_application: "SPF Safety First",
-  }
-  return titles[type] || "Mystery Challenge"
+  return OBJECTIVE_DATA[type as ObjectiveType]?.title ?? "Mystery Challenge"
 }
 
 function getObjectiveDescription(type: string): string {
-  const descriptions: Record<string, string> = {
-    selfie_with_shark: "Take a selfie with the shark visible in frame",
-    perfect_sandcastle: "Build a sandcastle while being chased",
-    tiktok_dance: "Perform a dance on the platform for 3 seconds",
-    sunscreen_application: "Apply sunscreen for 2 seconds of invulnerability",
-  }
-  return descriptions[type] || "Complete the challenge to earn points"
+  return OBJECTIVE_DATA[type as ObjectiveType]?.description ?? "Complete the challenge to earn points"
 }
 
 function getObjectivePoints(type: string): number {
-  const points: Record<string, number> = {
-    selfie_with_shark: 500,
-    perfect_sandcastle: 300,
-    tiktok_dance: 200,
-    sunscreen_application: 150,
-  }
-  return points[type] || 100
+  return OBJECTIVE_DATA[type as ObjectiveType]?.points ?? 100
 }
 
-function getObjectiveRequirements(type: string): any {
-  const requirements: Record<string, any> = {
-    selfie_with_shark: { sharkDistance: 50, duration: 2 },
-    perfect_sandcastle: { buildTime: 5, minHeight: 3 },
-    tiktok_dance: { duration: 3, platform: true },
-    sunscreen_application: { duration: 2, coverage: 0.8 },
-  }
-  return requirements[type] || {}
+function getObjectiveRequirements(type: string): ObjectiveRequirements {
+  return OBJECTIVE_DATA[type as ObjectiveType]?.requirements ?? {}
 }

@@ -21,10 +21,60 @@ interface SharkStateInfo {
   personality: SharkPersonality
 }
 
+interface GameStateInfo {
+  waterLevel?: string
+  timeRemaining?: number
+  activeEvent?: { type: string; startTime: number; duration: number }
+  playerCount?: number
+}
+
 interface DecisionContext {
   sharkState: SharkStateInfo
   playerState: PlayerInfo | null
-  gameState: any
+  gameState: GameStateInfo
+}
+
+interface CachedMemory {
+  targetUserId: string
+  encounters: number
+  successfulHunts: number
+  escapes: number
+  patterns: Array<{ type: string; data: unknown; confidence: number }>
+  relationship: "neutral" | "rival" | "nemesis" | "respected" | "favorite_snack"
+}
+
+interface MemoryInfluence {
+  targetUserId: string
+  patternUsed: string
+  grudgeLevel: number
+}
+
+interface RecommendationTarget {
+  opportunityScore: number
+  distance: number
+  memory?: { relationship: string; escapes: number }
+  patterns: Array<{ type: string; confidence: number }>
+}
+
+interface AIRecommendations {
+  recommendations: RecommendationTarget[]
+}
+
+interface SharkBrainResponse {
+  action: string
+  reasoning?: string
+  confidence?: number
+  personalityNote?: string
+}
+
+interface PatternData {
+  positions: Position[]
+  lastUpdate: number
+}
+
+interface CircularPatternData {
+  center: { x: number; y: number }
+  radius: number
 }
 
 export class SharkAIController {
@@ -33,7 +83,7 @@ export class SharkAIController {
   private sharkPlayerId: Id<"players">
   private sharkUserId: string
   private decisionCache: AIDecision | null = null
-  private memories: Map<string, any> = new Map()
+  private memories: Map<string, CachedMemory> = new Map()
   private patternTracker: Map<string, PatternData> = new Map()
   private useAIBrain: boolean = true // Toggle between AI service and local logic
 
@@ -84,7 +134,7 @@ export class SharkAIController {
       }
 
       // Analyze context and recommendations
-      const decision = this.analyzeAndDecide(context, recommendations)
+      const decision = this.analyzeAndDecide(context, recommendations as AIRecommendations)
 
       // Sync decision with backend
       await this.convexClient.mutation(api.aiSync.syncSharkDecision, {
@@ -119,7 +169,7 @@ export class SharkAIController {
     }
   }
 
-  private analyzeAndDecide(context: DecisionContext, recommendations: any): AIDecision {
+  private analyzeAndDecide(context: DecisionContext, recommendations: AIRecommendations): AIDecision {
     const { sharkState, playerState } = context
     const topTarget = recommendations.recommendations[0]
 
@@ -176,12 +226,13 @@ export class SharkAIController {
         }
         break
 
-      case "philosophical":
+      case "philosophical": {
         // Contemplative, pattern-focused
-        if (topTarget && topTarget.patterns.length > 0) {
+        const topPattern = topTarget?.patterns[0]
+        if (topTarget && topPattern) {
           action = "ambush"
-          reasoning = `Ah, the patterns reveal themselves. They always go ${topTarget.patterns[0].type}...`
-          confidence = topTarget.patterns[0].confidence
+          reasoning = `Ah, the patterns reveal themselves. They always go ${topPattern.type}...`
+          confidence = topPattern.confidence
           personalityInfluence = "Philosophical: Using pattern knowledge"
         } else {
           action = "patrol"
@@ -189,6 +240,7 @@ export class SharkAIController {
           personalityInfluence = "Philosophical: Observing and learning"
         }
         break
+      }
 
       case "meta":
         // Self-aware, breaks fourth wall
@@ -250,7 +302,7 @@ export class SharkAIController {
     }
   }
 
-  private getMemoryInfluence(targetUserId?: string): any {
+  private getMemoryInfluence(targetUserId?: string): MemoryInfluence | undefined {
     if (!targetUserId) {
       return undefined
     }
@@ -314,14 +366,15 @@ export class SharkAIController {
 
     // Low variance suggests circular movement
     if (variance < 100) {
-      this.recordPattern(userId, "circular_movement", {
+      const patternData: CircularPatternData = {
         center: { x: centerX, y: centerY },
         radius: avgDistance,
-      })
+      }
+      this.recordPattern(userId, "circular_movement", patternData)
     }
   }
 
-  private async recordPattern(userId: string, patternType: string, data: any): Promise<void> {
+  private async recordPattern(userId: string, patternType: string, data: CircularPatternData): Promise<void> {
     try {
       await this.convexClient.mutation(api.sharkAI.updateSharkMemory, {
         sharkUserId: this.sharkUserId,
@@ -374,7 +427,7 @@ export class SharkAIController {
     }
   }
 
-  getMemoryForPlayer(userId: string): any {
+  getMemoryForPlayer(userId: string): CachedMemory | undefined {
     return this.memories.get(userId)
   }
 
@@ -453,13 +506,8 @@ export class SharkAIController {
   }
 }
 
-interface PatternData {
-  positions: Position[]
-  lastUpdate: number
-}
-
 // Helper to call the shark brain API
-async function callSharkBrainAPI(context: any): Promise<any> {
+async function callSharkBrainAPI(context: unknown): Promise<SharkBrainResponse | null> {
   try {
     const response = await fetch("/api/shark-brain", {
       method: "POST",

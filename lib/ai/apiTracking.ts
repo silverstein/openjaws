@@ -2,8 +2,55 @@ import { apiLogger } from "@/lib/logger"
 import { type APIUsageStats, freeTierConfig, getInitialUsageStats } from "./config"
 import { responseCache } from "./responseCache"
 
-// API usage tracking (stored in memory for demo, should be persisted in production)
-let apiUsageStats: APIUsageStats = getInitialUsageStats()
+const STORAGE_KEY = "openjaws_api_usage"
+
+interface StoredUsageStats {
+  totalCalls: number
+  sharkCalls: number
+  npcCalls: number
+  commentaryCalls: number
+  lastReset: string
+  currentMode: "real" | "mock" | "cached"
+}
+
+function saveToStorage(stats: APIUsageStats): void {
+  try {
+    const data: StoredUsageStats = {
+      totalCalls: stats.totalCalls,
+      sharkCalls: stats.sharkCalls,
+      npcCalls: stats.npcCalls,
+      commentaryCalls: stats.commentaryCalls,
+      lastReset: stats.lastReset.toISOString(),
+      currentMode: stats.currentMode,
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+  } catch {
+    // localStorage unavailable (SSR, private browsing) — fall back to in-memory only
+  }
+}
+
+function loadFromStorage(): APIUsageStats {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return getInitialUsageStats()
+
+    const data: StoredUsageStats = JSON.parse(raw)
+    return {
+      totalCalls: data.totalCalls ?? 0,
+      sharkCalls: data.sharkCalls ?? 0,
+      npcCalls: data.npcCalls ?? 0,
+      commentaryCalls: data.commentaryCalls ?? 0,
+      lastReset: new Date(data.lastReset),
+      currentMode: data.currentMode ?? "real",
+    }
+  } catch {
+    return getInitialUsageStats()
+  }
+}
+
+// Load persisted stats on module init, fall back to fresh stats if unavailable
+let apiUsageStats: APIUsageStats =
+  typeof window !== "undefined" ? loadFromStorage() : getInitialUsageStats()
 
 // Check if we should reset daily limit
 export function checkDailyReset(): void {
@@ -13,6 +60,7 @@ export function checkDailyReset(): void {
   // Reset if it's been more than 24 hours
   if (now.getTime() - lastReset.getTime() > 24 * 60 * 60 * 1000) {
     apiUsageStats = getInitialUsageStats()
+    saveToStorage(apiUsageStats)
     apiLogger.info("Daily API limit reset")
   }
 }
@@ -61,6 +109,8 @@ export function trackAPIUsage(type: "shark" | "npc" | "commentary"): void {
       break
   }
 
+  saveToStorage(apiUsageStats)
+
   // Log warning when approaching limit
   const remaining = freeTierConfig.FREE_TIER_LIMIT - apiUsageStats.totalCalls
   if (remaining > 0 && remaining <= 10) {
@@ -82,4 +132,5 @@ export function getAPIUsageStats(): APIUsageStats & { remaining: number } {
 // Update current mode
 export function updateCurrentMode(mode: "real" | "mock" | "cached"): void {
   apiUsageStats.currentMode = mode
+  saveToStorage(apiUsageStats)
 }
