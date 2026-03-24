@@ -2,6 +2,7 @@ import { Container, Graphics, Sprite, Text, TextStyle } from "pixi.js"
 import { gameLogger } from "@/lib/logger"
 import type { NPCType } from "@/lib/ai/npcDialogue"
 import { assetLoader } from "../AssetLoader"
+import { OUTLINE, SKIN, drawFace, idleBob } from "../ArtStyle"
 
 // NPC visual configurations
 const NPC_CONFIGS: Record<
@@ -135,23 +136,31 @@ export class NPC {
   private drawNPCFallback(config: { color: number; size: number }): void {
     if (!(this.sprite instanceof Graphics)) return
 
-    this.sprite.clear()
+    const g = this.sprite
+    g.clear()
+    const r = config.size
 
-    // Draw body circle
-    this.sprite.circle(0, 0, config.size)
-    this.sprite.fill(config.color)
-    this.sprite.stroke({ width: 3, color: 0x000000 })
+    // Shadow
+    g.ellipse(0, r + 4, r * 0.7, 4)
+    g.fill({ color: 0x000000, alpha: 0.12 })
 
-    // Draw face
-    this.sprite.circle(-6, -4, 3)
-    this.sprite.circle(6, -4, 3)
-    this.sprite.fill(0x000000)
+    // Body — pill shape (same as Player for consistency)
+    g.roundRect(-r * 0.55, -r * 0.4, r * 1.1, r * 1.4, r * 0.4)
+    g.fill(config.color)
+    g.stroke(OUTLINE)
 
-    // Draw smile
-    this.sprite.moveTo(-5, 5)
-    this.sprite.lineTo(0, 8)
-    this.sprite.lineTo(5, 5)
-    this.sprite.stroke({ width: 2, color: 0x000000 })
+    // Head
+    g.circle(0, -r * 0.55, r * 0.45)
+    g.fill(SKIN.medium)
+    g.stroke(OUTLINE)
+
+    // Face
+    drawFace(g, r * 0.15, -r * 0.6, r * 0.08, r * 0.15)
+  }
+
+  /** Apply idle bob animation */
+  public applyIdleAnimation(): void {
+    this.container.y = this.y + idleBob(Date.now() + this.x * 100, 1.5, 0.002)
   }
 
   private drawInteractionIndicator(isNear: boolean): void {

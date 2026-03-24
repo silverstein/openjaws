@@ -1,5 +1,6 @@
 import { Container, Graphics, Sprite, Text, TextStyle } from "pixi.js"
 import { gameLogger } from "@/lib/logger"
+import { OUTLINE, PALETTE, idleBob } from "../ArtStyle"
 import type { SharkPersonality } from "@/convex/types"
 import type { SharkAIController } from "../ai/SharkAIController"
 import type { Player } from "./Player"
@@ -181,75 +182,104 @@ export class Shark {
     g.clear()
 
     const isAggro = this.currentState === "attacking" || this.currentState === "hunting"
+    const bodyColor = isAggro ? PALETTE.sharkBodyAggro : PALETTE.sharkBody
 
-    // Shark body — smooth torpedo shape
-    g.ellipse(0, -5, 18, 40)
-    g.fill(isAggro ? 0x3d566e : 0x4a6b8a)
-    g.stroke({ width: 2, color: 0x1a252f })
+    // Water shadow
+    g.ellipse(0, 42, 16, 4)
+    g.fill({ color: 0x000000, alpha: 0.1 })
 
-    // Belly (lighter underside)
-    g.ellipse(0, 5, 12, 25)
-    g.fill(0x8eafc0)
-
-    // Dorsal fin — tall and menacing
-    g.moveTo(0, -20)
-    g.lineTo(18, -5)
-    g.lineTo(2, -5)
-    g.closePath()
-    g.fill(0x3d566e)
-    g.stroke({ width: 1.5, color: 0x1a252f })
-
-    // Tail fin — forked
+    // Tail fin — forked, behind body
     g.moveTo(0, 30)
-    g.lineTo(20, 45)
-    g.lineTo(0, 38)
-    g.lineTo(-20, 45)
+    g.lineTo(18, 44)
+    g.lineTo(0, 36)
+    g.lineTo(-18, 44)
     g.closePath()
-    g.fill(0x3d566e)
-    g.stroke({ width: 1, color: 0x1a252f })
+    g.fill(PALETTE.sharkFin)
+    g.stroke(OUTLINE)
 
-    // Pectoral fins (side fins)
-    g.moveTo(-16, 0)
-    g.lineTo(-30, 12)
-    g.lineTo(-16, 8)
+    // Pectoral fins (side fins) — behind body
+    g.moveTo(-15, 2)
+    g.lineTo(-28, 14)
+    g.lineTo(-14, 8)
     g.closePath()
-    g.fill(0x4a6b8a)
-    g.moveTo(16, 0)
-    g.lineTo(30, 12)
-    g.lineTo(16, 8)
+    g.fill(bodyColor)
+    g.stroke({ width: 1.5, color: OUTLINE.color })
+    g.moveTo(15, 2)
+    g.lineTo(28, 14)
+    g.lineTo(14, 8)
     g.closePath()
-    g.fill(0x4a6b8a)
+    g.fill(bodyColor)
+    g.stroke({ width: 1.5, color: OUTLINE.color })
 
-    // Eyes — angry when hunting, calm when patrolling
-    const eyeColor = isAggro ? 0xff0000 : 0xffcc00
-    g.circle(-8, -25, isAggro ? 4 : 3)
-    g.circle(8, -25, isAggro ? 4 : 3)
+    // Main body — smooth torpedo
+    g.ellipse(0, -2, 17, 38)
+    g.fill(bodyColor)
+    g.stroke(OUTLINE)
+
+    // Belly — lighter underside
+    g.ellipse(0, 8, 11, 22)
+    g.fill(PALETTE.sharkBelly)
+
+    // Dorsal fin — iconic triangle
+    g.moveTo(0, -18)
+    g.lineTo(16, -2)
+    g.lineTo(2, -2)
+    g.closePath()
+    g.fill(PALETTE.sharkFin)
+    g.stroke(OUTLINE)
+
+    // Eyes — glow when aggressive
+    const eyeSize = isAggro ? 4 : 3
+    const eyeColor = isAggro ? PALETTE.sharkEyeAggro : PALETTE.sharkEye
+    g.circle(-7, -24, eyeSize)
+    g.circle(7, -24, eyeSize)
     g.fill(eyeColor)
-    // Pupils
-    g.circle(-8, -25, 1.5)
-    g.circle(8, -25, 1.5)
-    g.fill(0x000000)
+    // Pupils — slitted when hunting
+    if (isAggro) {
+      g.ellipse(-7, -24, 1, 3)
+      g.ellipse(7, -24, 1, 3)
+    } else {
+      g.circle(-7, -24, 1.5)
+      g.circle(7, -24, 1.5)
+    }
+    g.fill(0x111111)
 
-    // Mouth — always has teeth showing
-    g.moveTo(-12, -35)
-    g.lineTo(0, -38)
-    g.lineTo(12, -35)
-    g.stroke({ width: 1.5, color: 0x1a252f })
+    // Mouth line
+    g.moveTo(-10, -34)
+    g.lineTo(0, -36)
+    g.lineTo(10, -34)
+    g.stroke({ width: 1.5, color: OUTLINE.color })
 
-    // Teeth — always visible, more when aggressive
+    // Teeth — always showing, more when aggressive
     const teethCount = isAggro ? 5 : 3
     for (let i = -teethCount; i <= teethCount; i++) {
-      const tx = i * 3
-      g.moveTo(tx - 1.5, -35)
-      g.lineTo(tx, isAggro ? -42 : -39)
-      g.lineTo(tx + 1.5, -35)
+      g.moveTo(i * 2.5 - 1.5, -34)
+      g.lineTo(i * 2.5, isAggro ? -41 : -38)
+      g.lineTo(i * 2.5 + 1.5, -34)
       g.fill(0xffffff)
     }
 
-    // Scars (adds character)
-    g.moveTo(-5, -10)
-    g.lineTo(3, -15)
-    g.stroke({ width: 1, color: 0x2c3e50, alpha: 0.5 })
+    // Scars (personality)
+    g.moveTo(-5, -8)
+    g.lineTo(3, -13)
+    g.stroke({ width: 1, color: OUTLINE.color, alpha: 0.3 })
+    g.moveTo(4, 2)
+    g.lineTo(8, -3)
+    g.stroke({ width: 0.8, color: OUTLINE.color, alpha: 0.2 })
+
+    // Difficulty indicator — glow ring when scaled up
+    if (this.difficultyMultiplier > 1.0) {
+      const glowAlpha = 0.1 + (this.difficultyMultiplier - 1) * 0.3
+      g.circle(0, 0, 44)
+      g.stroke({ width: 2, color: isAggro ? 0xff0000 : 0xff6600, alpha: Math.min(0.5, glowAlpha) })
+    }
+  }
+
+  /** Apply idle swim animation */
+  public applyIdleAnimation(): void {
+    if (this.currentState === "patrol") {
+      this.container.y = this.y + idleBob(Date.now(), 3, 0.002)
+    }
   }
 
   private drawEffects(): void {
