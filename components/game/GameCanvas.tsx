@@ -16,6 +16,9 @@ import { assetLoader } from "@/lib/game/AssetLoader"
 import type { SharkAIController } from "@/lib/game/ai/SharkAIController"
 import { AchievementTrigger, PsychologicalEffects } from "@/lib/game/effects/PsychologicalEffects"
 import { ScreenShake, CloseCallDetector, TensionTracker } from "@/lib/game/effects/ScreenEffects"
+import { DiscoverySystem } from "@/lib/game/systems/DiscoverySystem"
+import type { GameConditions } from "@/lib/game/systems/ObjectiveSystem"
+import { RoundBanner } from "./RoundBanner"
 import { Harpoon } from "@/lib/game/entities/Harpoon"
 import { createHarpoonStations, HarpoonStation } from "@/lib/game/entities/HarpoonStation"
 import { createIceCreamStand, IceCreamStand } from "@/lib/game/entities/IceCreamStand"
@@ -112,6 +115,12 @@ export function GameCanvas() {
   const tensionRef = useRef(new TensionTracker())
   const [tensionMood, setTensionMood] = useState<"calm" | "tense" | "danger" | "panic">("calm")
   const [closeCallFlash, setCloseCallFlash] = useState<"near_miss" | "close_call" | null>(null)
+
+  // Round and discovery systems
+  const discoveryRef = useRef(new DiscoverySystem())
+  const [roundBannerVisible, setRoundBannerVisible] = useState(false)
+  const [roundBannerRound, setRoundBannerRound] = useState(1)
+  const [discoveryHint, setDiscoveryHint] = useState<{ emoji: string; text: string } | null>(null)
 
   // Player economy state
   const [playerPoints, setPlayerPoints] = useState(100) // Start with some points
@@ -325,10 +334,22 @@ export function GameCanvas() {
       // Initialize psychological effects
       psychEffectsRef.current = new PsychologicalEffects(app)
 
-      // Initialize objective system
+      // Initialize objective system with round callbacks
       const objectiveSystem = new ObjectiveSystem()
       objectiveSystemRef.current = objectiveSystem
       uiLayer.addChild(objectiveSystem.getContainer())
+
+      objectiveSystem.setOnRoundComplete((round, _score) => {
+        // Show round banner for next round
+        setRoundBannerRound(round + 1)
+        setRoundBannerVisible(true)
+        // Pause game during banner
+        app.ticker.stop()
+      })
+
+      objectiveSystem.setOnObjectiveComplete(() => {
+        playSound("treasure_collect", { volume: 0.7 })
+      })
 
       // Initialize shark health bar
       const sharkHealthBar = new SharkHealthBar()
@@ -768,6 +789,7 @@ export function GameCanvas() {
               playSound("npc_chime", { volume: 0.5 })
               setActiveNPC(foundNPC)
               foundNPC.setInteracting(true)
+              objectiveSystemRef.current?.handleEvent({ type: "npc_talked", npcType: foundNPC.npcType })
             }
           }
         }
@@ -841,6 +863,7 @@ export function GameCanvas() {
           entityLayer.addChild(baitZone.container)
 
           playSound("item_throw", { volume: 0.5 })
+          objectiveSystemRef.current?.handleEvent({ type: "bait_thrown" })
           gameLogger.debug(`Threw ${fishToThrow} bait at (${throwX}, ${throwY})`)
 
           // Visual feedback
@@ -1078,9 +1101,44 @@ export function GameCanvas() {
           waterShaderRef.current.time += 0.01
         }
 
-        // Update objective system
-        if (objectiveSystemRef.current) {
+        // Update objective system — continuous condition checks
+        if (objectiveSystemRef.current && player && shark) {
           objectiveSystemRef.current.updateTimer(delta)
+          const conditions: GameConditions = {
+            playerX: player.x,
+            playerY: player.y,
+            sharkX: shark.x,
+            sharkY: shark.y,
+            playerInWater: player.isInWater,
+            playerInDeepWater: deepWaterZoneRef.current?.isInDeepWater(player.y) ?? false,
+            damageDealt: playerStatsRef.current.damageDealt,
+            fishCount: playerFishInventoryRef.current.length,
+            sharkHP: shark.getHealth(),
+          }
+          objectiveSystemRef.current.updateConditions(delta, conditions)
+        }
+
+        // Discovery hints — contextual tutorial prompts
+        if (player && shark) {
+          const sharkDist = Math.sqrt((shark.x - player.x) ** 2 + (shark.y - player.y) ** 2)
+          const hint = discoveryRef.current.check({
+            playerX: player.x,
+            playerY: player.y,
+            playerInWater: player.isInWater,
+            playerHP: player.health,
+            sharkDistance: sharkDist,
+            nearHarpoonStation: harpoonStationsRef.current.some(s => Math.sqrt((s.x - player.x) ** 2 + (s.y - player.y) ** 2) < 80),
+            nearNPC: !!npcsRef.current.find(n => Math.sqrt((n.x - player.x) ** 2 + (n.y - player.y) ** 2) < 80),
+            nearFishMarket: fishMarketRef.current ? Math.sqrt((fishMarketRef.current.x - player.x) ** 2 + (fishMarketRef.current.y - player.y) ** 2) < 80 : false,
+            nearBoat: boatRef.current ? boatRef.current.isInBoardingRange(player.x, player.y) : false,
+            nearBeachHouse: beachHouseRef.current ? beachHouseRef.current.canEnter(player.userId || "player_1") : false,
+            nearIceCreamStand: iceCreamStandRef.current ? iceCreamStandRef.current.canHeal(player.userId || "player_1") : false,
+            hasFish: playerFishInventoryRef.current.length > 0,
+            hasHeldItem: !!heldBeachItemRef.current,
+            round: objectiveSystemRef.current?.getCurrentRound() ?? 1,
+            secretRoomUnlocked: secretRoomRef.current?.isUnlocked(player.userId || "player_1") ?? false,
+          })
+          setDiscoveryHint(hint)
         }
 
         // Update shark health bar (Pixi version for in-game display)
@@ -1202,6 +1260,7 @@ export function GameCanvas() {
                 shark.stun(effect.value)
               }
               item.hit()
+              objectiveSystemRef.current?.handleEvent({ type: "item_thrown" })
 
               // Visual feedback
               const damageText = effect.type === "damage" ? `-${effect.value}` : ""
@@ -1291,6 +1350,7 @@ export function GameCanvas() {
               // Hit the shark! (damage is applied with multiplier inside takeDamage)
               shark.takeDamage(harpoon.damage)
               harpoon.hit()
+              objectiveSystemRef.current?.handleEvent({ type: "harpoon_hit" })
 
               // Track damage dealt for stats and UI
               setLastSharkDamage(actualDamage)
@@ -2315,6 +2375,35 @@ export function GameCanvas() {
                 : "radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.15) 100%)",
           }}
         />
+      )}
+
+      {/* Round transition banner */}
+      <RoundBanner
+        round={roundBannerRound}
+        score={objectiveSystemRef.current?.getScore() ?? 0}
+        visible={roundBannerVisible}
+        onCountdownComplete={() => {
+          setRoundBannerVisible(false)
+          // Scale shark difficulty for new round
+          if (sharkRef.current) {
+            sharkRef.current.setDifficultyForRound(roundBannerRound)
+            setSharkHP({ current: sharkRef.current.getHealth(), max: sharkRef.current.getMaxHealth() })
+          }
+          // Start next round objectives
+          objectiveSystemRef.current?.startNextRound(playerStats.damageDealt)
+          // Resume game
+          appRef.current?.ticker.start()
+        }}
+      />
+
+      {/* Discovery hints — tutorial prompts */}
+      {discoveryHint && (
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-40 animate-[fadeSlide_0.3s_ease-out]">
+          <div className="bg-black/70 backdrop-blur-sm rounded-xl px-5 py-3 text-white flex items-center gap-3 shadow-lg border border-white/10 max-w-md">
+            <span className="text-2xl">{discoveryHint.emoji}</span>
+            <span className="text-sm">{discoveryHint.text}</span>
+          </div>
+        </div>
       )}
 
       {/* Volume Control */}

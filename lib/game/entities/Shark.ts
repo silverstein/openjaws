@@ -47,6 +47,9 @@ export class Shark {
   private detectionRadius: number = 200
   private attackRadius: number = 50
 
+  // Difficulty scaling
+  private difficultyMultiplier: number = 1.0
+
   // State timers
   private stateTimer: number = 0
   private patrolDirection: number = Math.random() * Math.PI * 2
@@ -466,6 +469,22 @@ export class Shark {
   public stun(duration: number = 2000): void {
     this.stunDuration = duration
     this.setState("stunned")
+  }
+
+  /** Scale difficulty for round progression. Called between rounds. */
+  public setDifficultyForRound(round: number): void {
+    this.difficultyMultiplier = 1.0 + (round - 1) * 0.1
+    const baseHP = 150
+    this.maxHealth = baseHP + (round - 1) * 20
+    this.health = this.maxHealth
+    this.patrolSpeed = 1.5 * this.difficultyMultiplier
+    this.detectionRadius = 200 + (round - 1) * 15
+    this.rage = Math.min(100, (round - 1) * 10)
+    gameLogger.debug(`Shark difficulty set for round ${round}: ${this.difficultyMultiplier}x speed, ${this.maxHealth} HP, ${this.detectionRadius} detection`)
+  }
+
+  public getDifficultyMultiplier(): number {
+    return this.difficultyMultiplier
   }
 
   protected getDistanceTo(x: number, y: number): number {
