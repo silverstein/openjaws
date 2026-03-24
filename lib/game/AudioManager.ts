@@ -12,6 +12,7 @@ export type SoundEffect =
   | "shark_tension"
   | "lobby_music"
   | "bite"
+  | "splash"
   | "npc_chime"
   | "ability_activate"
   | "selfie_camera"
@@ -119,6 +120,7 @@ export class AudioManager {
       shark_tension: "/audio/shark_tension.mp3",
       lobby_music: "/audio/lobby_music.mp3",
       bite: "/audio/bite.mp3",
+      splash: "/audio/splash.mp3",
       npc_chime: "/audio/npc_chime.mp3",
       ability_activate: "/audio/ability_activate.mp3",
       selfie_camera: "/audio/selfie_camera.mp3",

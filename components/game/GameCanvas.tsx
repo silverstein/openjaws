@@ -16,6 +16,7 @@ import { assetLoader } from "@/lib/game/AssetLoader"
 import type { SharkAIController } from "@/lib/game/ai/SharkAIController"
 import { AchievementTrigger, PsychologicalEffects } from "@/lib/game/effects/PsychologicalEffects"
 import { ScreenShake, CloseCallDetector, TensionTracker } from "@/lib/game/effects/ScreenEffects"
+import { ParticleSystem, FloatingTextManager } from "@/lib/game/effects/Particles"
 import { saveGameResult } from "@/lib/game/HighScores"
 import { DiscoverySystem } from "@/lib/game/systems/DiscoverySystem"
 import type { GameConditions } from "@/lib/game/systems/ObjectiveSystem"
@@ -117,6 +118,9 @@ export function GameCanvas() {
   const [tensionMood, setTensionMood] = useState<"calm" | "tense" | "danger" | "panic">("calm")
   const [closeCallFlash, setCloseCallFlash] = useState<"near_miss" | "close_call" | null>(null)
   const [cameraFlash, setCameraFlash] = useState(false)
+  const particlesRef = useRef<ParticleSystem | null>(null)
+  const floatingTextRef = useRef<FloatingTextManager | null>(null)
+  const wasInWaterRef = useRef(false)
 
   // Round and discovery systems
   const discoveryRef = useRef(new DiscoverySystem())
@@ -341,6 +345,15 @@ export function GameCanvas() {
       // Initialize psychological effects
       psychEffectsRef.current = new PsychologicalEffects(app)
 
+      // Initialize particle systems
+      const particles = new ParticleSystem()
+      particlesRef.current = particles
+      entityLayer.addChild(particles.getContainer())
+
+      const floatingText = new FloatingTextManager()
+      floatingTextRef.current = floatingText
+      uiLayer.addChild(floatingText.getContainer())
+
       // Initialize objective system with round callbacks
       const objectiveSystem = new ObjectiveSystem()
       objectiveSystemRef.current = objectiveSystem
@@ -354,8 +367,13 @@ export function GameCanvas() {
         app.ticker.stop()
       })
 
-      objectiveSystem.setOnObjectiveComplete(() => {
+      objectiveSystem.setOnObjectiveComplete((obj) => {
         playSound("treasure_collect", { volume: 0.7 })
+        // Sparkle at player position
+        if (playerRef.current) {
+          particlesRef.current?.sparkle(playerRef.current.x, playerRef.current.y)
+          floatingTextRef.current?.score(playerRef.current.x, playerRef.current.y, obj.points)
+        }
       })
 
       // Initialize shark health bar
@@ -1107,6 +1125,9 @@ export function GameCanvas() {
         // Update screen shake effect
         screenShakeRef.current.update(delta)
 
+        // Update particle system
+        particlesRef.current?.update(delta)
+
         // Update water shader time for wave animation
         if (waterShaderRef.current) {
           waterShaderRef.current.time += 0.01
@@ -1282,6 +1303,10 @@ export function GameCanvas() {
                 shark.stun(effect.value)
               }
               item.hit()
+              particlesRef.current?.hitImpact(shark.x, shark.y, 0xffa07a)
+              if (effect.type === "damage") {
+                floatingTextRef.current?.damage(shark.x, shark.y, effect.value)
+              }
               objectiveSystemRef.current?.handleEvent({ type: "item_thrown" })
 
               // Visual feedback
@@ -1372,6 +1397,8 @@ export function GameCanvas() {
               // Hit the shark! (damage is applied with multiplier inside takeDamage)
               shark.takeDamage(harpoon.damage)
               harpoon.hit()
+              particlesRef.current?.hitImpact(shark.x, shark.y)
+              floatingTextRef.current?.damage(shark.x, shark.y, Math.round(harpoon.damage * shark.getVulnerabilityMultiplier()))
               objectiveSystemRef.current?.handleEvent({ type: "harpoon_hit" })
 
               // Track damage dealt for stats and UI
@@ -1544,6 +1571,18 @@ export function GameCanvas() {
           }
 
           player.update(delta, dx, dy, isInWater, sharkDist)
+
+          // Water splash on enter
+          if (isInWater && !wasInWaterRef.current) {
+            particlesRef.current?.splash(player.x, player.y)
+            playSound("splash", { volume: 0.4 })
+          }
+          wasInWaterRef.current = isInWater
+
+          // Swimming bubbles
+          if (isInWater && (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1)) {
+            particlesRef.current?.bubble(player.x, player.y + 10)
+          }
 
           // Process ability effects on shark
           if (shark) {
@@ -1856,8 +1895,9 @@ export function GameCanvas() {
                 app.stage.removeChild(biteText)
               }, 1000)
 
-              // Screen shake effect — proper multi-frame shake
+              // Screen shake + chomp particles
               screenShakeRef.current.shake(app.stage, 12, 400)
+              particlesRef.current?.chomp(player.x, player.y)
 
               // Record successful hunt
               if (aiControllerRef.current) {
