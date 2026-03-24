@@ -15,6 +15,7 @@ import { useSharkMemory } from "@/hooks/useSharkMemory"
 import { assetLoader } from "@/lib/game/AssetLoader"
 import type { SharkAIController } from "@/lib/game/ai/SharkAIController"
 import { AchievementTrigger, PsychologicalEffects } from "@/lib/game/effects/PsychologicalEffects"
+import { ScreenShake, CloseCallDetector, TensionTracker } from "@/lib/game/effects/ScreenEffects"
 import { Harpoon } from "@/lib/game/entities/Harpoon"
 import { createHarpoonStations, HarpoonStation } from "@/lib/game/entities/HarpoonStation"
 import { createIceCreamStand, IceCreamStand } from "@/lib/game/entities/IceCreamStand"
@@ -104,6 +105,13 @@ export function GameCanvas() {
   const thrownItemsRef = useRef<ThrownItem[]>([])
   const deepWaterIndicatorRef = useRef<DeepWaterIndicator | null>(null)
   const aiAbortControllerRef = useRef<AbortController | null>(null)
+
+  // Gameplay tension systems
+  const screenShakeRef = useRef(new ScreenShake())
+  const closeCallRef = useRef(new CloseCallDetector())
+  const tensionRef = useRef(new TensionTracker())
+  const [tensionMood, setTensionMood] = useState<"calm" | "tense" | "danger" | "panic">("calm")
+  const [closeCallFlash, setCloseCallFlash] = useState<"near_miss" | "close_call" | null>(null)
 
   // Player economy state
   const [playerPoints, setPlayerPoints] = useState(100) // Start with some points
@@ -1062,6 +1070,9 @@ export function GameCanvas() {
       app.ticker.add((ticker) => {
         const delta = ticker.deltaTime
 
+        // Update screen shake effect
+        screenShakeRef.current.update(delta)
+
         // Update water shader time for wave animation
         if (waterShaderRef.current) {
           waterShaderRef.current.time += 0.01
@@ -1752,13 +1763,8 @@ export function GameCanvas() {
                 app.stage.removeChild(biteText)
               }, 1000)
 
-              // Screen shake effect
-              app.stage.x = Math.random() * 10 - 5
-              app.stage.y = Math.random() * 10 - 5
-              setTimeout(() => {
-                app.stage.x = 0
-                app.stage.y = 0
-              }, 100)
+              // Screen shake effect — proper multi-frame shake
+              screenShakeRef.current.shake(app.stage, 12, 400)
 
               // Record successful hunt
               if (aiControllerRef.current) {
@@ -2025,10 +2031,28 @@ export function GameCanvas() {
                 setTimeout(() => setPatternRecognized(undefined), 5000)
               }
 
-              // Dynamic tension based on proximity
+              // Dynamic tension based on proximity (using TensionTracker)
               const distance = Math.sqrt((shark.x - player.x) ** 2 + (shark.y - player.y) ** 2)
-              const tension = Math.max(0, 1 - distance / 500)
-              psychEffectsRef.current?.setTension(tension * 0.5)
+              const tensionLevel = tensionRef.current.update(
+                delta, player.x, player.y, shark.x, shark.y, player.isInWater
+              )
+              const mood = tensionRef.current.getMood()
+              setTensionMood(mood)
+              psychEffectsRef.current?.setTension(tensionLevel / 200)
+
+              // Close call detection — "THAT WAS CLOSE!" moments
+              const closeCall = closeCallRef.current.check(
+                player.x, player.y, shark.x, shark.y,
+                (shark as any).currentState || "patrol"
+              )
+              if (closeCall) {
+                setCloseCallFlash(closeCall)
+                if (closeCall === "near_miss") {
+                  screenShakeRef.current.shake(app.stage, 6, 200)
+                  playSound("ability_activate", { volume: 0.4 })
+                }
+                setTimeout(() => setCloseCallFlash(null), 1500)
+              }
 
               // Heartbeat when very close
               if (distance < 150 && !achievementRef.current.hasAchievement("shark_knows_name")) {
@@ -2259,6 +2283,39 @@ export function GameCanvas() {
         recognitionLevel={recognitionMoment.level}
         onComplete={() => setRecognitionMoment((prev) => ({ ...prev, active: false }))}
       />
+
+      {/* Close call flash — "THAT WAS CLOSE!" */}
+      {closeCallFlash && (
+        <div className={`fixed inset-0 z-50 pointer-events-none transition-opacity duration-300 ${
+          closeCallFlash === "near_miss"
+            ? "bg-red-500/30 animate-pulse"
+            : "bg-yellow-500/20"
+        }`}>
+          <div className="flex items-center justify-center h-full">
+            <div className={`text-center animate-bounce ${
+              closeCallFlash === "near_miss" ? "text-red-200" : "text-yellow-200"
+            }`}>
+              <p className="text-3xl sm:text-4xl font-black drop-shadow-lg">
+                {closeCallFlash === "near_miss" ? "😱 NEAR MISS!" : "😰 TOO CLOSE!"}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tension vignette — edges darken when shark is near */}
+      {tensionMood !== "calm" && (
+        <div
+          className="fixed inset-0 z-20 pointer-events-none transition-opacity duration-1000"
+          style={{
+            background: tensionMood === "panic"
+              ? "radial-gradient(ellipse at center, transparent 40%, rgba(139,0,0,0.4) 100%)"
+              : tensionMood === "danger"
+                ? "radial-gradient(ellipse at center, transparent 50%, rgba(139,0,0,0.25) 100%)"
+                : "radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.15) 100%)",
+          }}
+        />
+      )}
 
       {/* Volume Control */}
       <VolumeControl />
