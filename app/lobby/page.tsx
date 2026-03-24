@@ -8,19 +8,36 @@ import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { useIsTouchDevice } from "@/hooks/useIsTouchDevice"
 import { useIsLandscape } from "@/hooks/useIsLandscape"
-import { useGameAudio } from "@/hooks/useGameAudio" // Add this import
+import { useGameAudio } from "@/hooks/useGameAudio"
+import { loadHighScores, getStatsLine, type HighScores } from "@/lib/game/HighScores"
+
+const SHARK_PERSONALITIES = [
+  { id: "theatrical", name: "Theatrical", emoji: "🎭", desc: "Dramatic flair" },
+  { id: "dadJoke", name: "Dad Joke", emoji: "😂", desc: "Terrible puns" },
+  { id: "meta", name: "Meta", emoji: "🎮", desc: "Knows it's a game" },
+  { id: "philosophical", name: "Philosopher", emoji: "🤔", desc: "Deep thoughts" },
+  { id: "vengeful", name: "Vengeful", emoji: "😤", desc: "Holds grudges" },
+  { id: "methodical", name: "Methodical", emoji: "🧠", desc: "Calculated" },
+] as const
 
 export default function LobbyPage() {
   const router = useRouter()
   const [playerName, setPlayerName] = useState("")
+  const [selectedShark, setSelectedShark] = useState("theatrical")
   const [selectedArchetype, setSelectedArchetype] = useState<"influencer" | "boomer_dad" | "surfer_bro" | "lifeguard" | "marine_biologist" | "spring_breaker">("influencer")
   const [creatingGame, setCreatingGame] = useState(false)
   const [showHowToPlay, setShowHowToPlay] = useState(false)
   const [dismissedLandscapeTip, setDismissedLandscapeTip] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [highScores, setHighScores] = useState<HighScores | null>(null)
   const isTouchDevice = useIsTouchDevice()
   const isLandscape = useIsLandscape()
   const { initializeAudio, playSound, stopAllSounds } = useGameAudio() // Initialize useGameAudio
+
+  // Load high scores on mount
+  useEffect(() => {
+    setHighScores(loadHighScores())
+  }, [])
 
   // Lazy-start lobby music after first user interaction (avoids autoplay block)
   useEffect(() => {
@@ -259,6 +276,46 @@ export default function LobbyPage() {
                 )}
               </div>
 
+              {/* Shark personality picker */}
+              <div className="mb-4">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Choose Your Shark 🦈
+                </label>
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                  {SHARK_PERSONALITIES.map((shark) => (
+                    <button
+                      key={shark.id}
+                      type="button"
+                      onClick={() => setSelectedShark(shark.id)}
+                      className={`p-2 rounded-xl border-2 transition-all flex flex-col items-center min-h-[60px] ${
+                        selectedShark === shark.id
+                          ? "border-purple-400 bg-purple-50 shadow-lg scale-105"
+                          : "border-gray-200 hover:border-purple-300 hover:bg-gray-50"
+                      }`}
+                    >
+                      <span className="text-xl">{shark.emoji}</span>
+                      <span className="text-[10px] font-semibold mt-0.5 text-gray-700 leading-tight">
+                        {shark.name}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-500 mt-1.5 text-center">
+                  {SHARK_PERSONALITIES.find(s => s.id === selectedShark)?.desc}
+                </p>
+              </div>
+
+              {/* High scores */}
+              {highScores && highScores.totalGames > 0 && (
+                <div className="mb-4 p-3 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl border border-yellow-200">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="text-lg">🏆</span>
+                    <span className="text-sm font-bold text-gray-700">Your Stats</span>
+                  </div>
+                  <p className="text-xs text-gray-600">{getStatsLine(highScores)}</p>
+                </div>
+              )}
+
               {/* Error message */}
               {errorMessage && (
                 <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 flex items-center gap-2">
@@ -271,10 +328,11 @@ export default function LobbyPage() {
               {/* Action buttons */}
               <div className="space-y-3">
                 <Link
-                  href={`/game?archetype=${selectedArchetype}&name=${encodeURIComponent(playerName || "Player")}`}
+                  href={`/game?archetype=${selectedArchetype}&name=${encodeURIComponent(playerName || "Player")}&shark=${selectedShark}`}
                   onClick={() => {
                     sessionStorage.setItem("selectedArchetype", selectedArchetype)
                     sessionStorage.setItem("playerName", playerName || "Player")
+                    sessionStorage.setItem("selectedShark", selectedShark)
                   }}
                   className="block w-full bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white font-bold py-4 px-6 rounded-xl text-center text-base sm:text-lg transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-lg"
                 >

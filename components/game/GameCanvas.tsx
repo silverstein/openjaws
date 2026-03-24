@@ -16,6 +16,7 @@ import { assetLoader } from "@/lib/game/AssetLoader"
 import type { SharkAIController } from "@/lib/game/ai/SharkAIController"
 import { AchievementTrigger, PsychologicalEffects } from "@/lib/game/effects/PsychologicalEffects"
 import { ScreenShake, CloseCallDetector, TensionTracker } from "@/lib/game/effects/ScreenEffects"
+import { saveGameResult } from "@/lib/game/HighScores"
 import { DiscoverySystem } from "@/lib/game/systems/DiscoverySystem"
 import type { GameConditions } from "@/lib/game/systems/ObjectiveSystem"
 import { RoundBanner } from "./RoundBanner"
@@ -134,7 +135,7 @@ export function GameCanvas() {
   // Player identity/archetype from lobby/session
   const [playerIdentity] = useState(() => {
     if (typeof window === "undefined") {
-      return { archetype: "influencer" as CharacterType, userId: "player_1", playerName: "Player" }
+      return { archetype: "influencer" as CharacterType, userId: "player_1", playerName: "Player", sharkPersonality: "theatrical" }
     }
     const params = new URLSearchParams(window.location.search)
     const urlArch = params.get("archetype")
@@ -160,7 +161,8 @@ export function GameCanvas() {
     const archetype = mapArchetype(rawArch)
     const userId = params.get("userId") || sessionStorage.getItem("userId") || "player_1"
     const playerName = params.get("name") || sessionStorage.getItem("playerName") || "Player"
-    return { archetype, userId, playerName }
+    const sharkPersonality = params.get("shark") || sessionStorage.getItem("selectedShark") || "theatrical"
+    return { archetype, userId, playerName, sharkPersonality }
   })
 
   // Track UI state
@@ -209,12 +211,16 @@ export function GameCanvas() {
   const [nearbyNPC, setNearbyNPC] = useState<NPC | null>(null)
   const [npcEvent, setNpcEvent] = useState<"shark_nearby" | "player_hurt" | "calm" | "storm" | "shark_attack">("calm")
   const [aiThoughts, setAIThoughts] = useState<string>("")
-  const [sharkAIState, setSharkAIState] = useState({
-    personality: "theatrical" as const,
+  const [sharkAIState, setSharkAIState] = useState(() => ({
+    personality: (typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search).get("shark")
+        || sessionStorage.getItem("selectedShark")
+        || "theatrical"
+      : "theatrical") as "methodical" | "theatrical" | "vengeful" | "philosophical" | "meta" | "dadJoke",
     hunger: 50,
     rage: 0,
     currentTarget: null as string | null,
-  })
+  }))
   const [patternRecognized, setPatternRecognized] = useState<
     { type: string; confidence: number } | undefined
   >()
@@ -407,8 +413,8 @@ export function GameCanvas() {
       entityLayer.addChild(shark.container)
       gameLogger.debug("Shark created at:", shark.x, shark.y, "distance from player:", Math.sqrt((sharkSpawnX - playerSpawnX) ** 2 + (sharkSpawnY - playerSpawnY) ** 2).toFixed(0))
 
-      // Set shark personality without AI controller for now
-      shark.setPersonality("theatrical") // Start with theatrical personality
+      // Set shark personality from lobby selection
+      shark.setPersonality(playerIdentity.sharkPersonality as any)
 
       // Load shark memories for returning players (grudge system)
       loadMemories("shark_ai").then(() => {
@@ -1159,6 +1165,17 @@ export function GameCanvas() {
           // Check for win condition - shark defeated!
           if (shark.isDefeated() && !victoryScreenVisible) {
             playSound("victory_fanfare", { volume: 0.8 })
+            // Save high score (win!)
+            saveGameResult({
+              score: objectiveSystemRef.current?.getScore() ?? 0,
+              round: objectiveSystemRef.current?.getCurrentRound() ?? 1,
+              selfies: playerStatsRef.current.selfiesTaken,
+              damageDealt: playerStatsRef.current.damageDealt,
+              character: playerIdentity.archetype,
+              sharkPersonality: playerIdentity.sharkPersonality,
+              date: new Date().toISOString(),
+              won: true,
+            })
             setVictoryScreenVisible(true)
             // Stop the game loop
             app.ticker.stop()
@@ -1721,6 +1738,17 @@ export function GameCanvas() {
                 pattern: { type: "behavior_pattern", data: { result: "caught" }, timestamp: Date.now() },
               }).catch(() => { /* Convex unavailable — ok */ })
             }
+            // Save high score
+            saveGameResult({
+              score: objectiveSystemRef.current?.getScore() ?? 0,
+              round: objectiveSystemRef.current?.getCurrentRound() ?? 1,
+              selfies: playerStatsRef.current.selfiesTaken,
+              damageDealt: playerStatsRef.current.damageDealt,
+              character: playerIdentity.archetype,
+              sharkPersonality: playerIdentity.sharkPersonality,
+              date: new Date().toISOString(),
+              won: false,
+            })
             // Show React death screen with personality taunt
             setDeathScreenVisible(true)
             // Stop the game loop
@@ -2104,6 +2132,14 @@ export function GameCanvas() {
               const mood = tensionRef.current.getMood()
               setTensionMood(mood)
               psychEffectsRef.current?.setTension(tensionLevel / 200)
+
+              // Reactive audio — tension music
+              if ((mood === "danger" || mood === "panic") && !audioRefs.current.sharkTension) {
+                audioRefs.current.sharkTension = playSound("shark_tension", { loop: true, volume: 0.3, fadeIn: 1 })
+              } else if (mood === "calm" && audioRefs.current.sharkTension) {
+                stopSound(audioRefs.current.sharkTension)
+                audioRefs.current.sharkTension = null
+              }
 
               // Close call detection — "THAT WAS CLOSE!" moments
               const closeCall = closeCallRef.current.check(
