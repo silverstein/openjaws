@@ -1,6 +1,23 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { type CharacterType, Player } from "./Player"
 
+// Mock assetLoader and logger
+vi.mock("@/lib/game/AssetLoader", () => ({
+  assetLoader: { getTexture: vi.fn().mockReturnValue(null), loadAssets: vi.fn().mockResolvedValue(undefined) },
+}))
+vi.mock("@/lib/logger", () => ({
+  gameLogger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+}))
+vi.mock("@/lib/game/effects/ViewerShield", () => ({
+  ViewerShield: class MockViewerShield {
+    getContainer() { return { x: 0, y: 0, addChild: vi.fn(), removeChild: vi.fn(), children: [] } }
+    update() {}
+    isActive() { return false }
+    absorbHit() { return false }
+    getActiveShields() { return 0 }
+  },
+}))
+
 // Mock PIXI.js with class-based mocks for v8 compatibility
 vi.mock("pixi.js", () => {
   class MockContainer {
@@ -24,6 +41,8 @@ vi.mock("pixi.js", () => {
     circle = vi.fn().mockReturnThis()
     ellipse = vi.fn().mockReturnThis()
     rect = vi.fn().mockReturnThis()
+    roundRect = vi.fn().mockReturnThis()
+    arc = vi.fn().mockReturnThis()
     fill = vi.fn().mockReturnThis()
     stroke = vi.fn().mockReturnThis()
     moveTo = vi.fn().mockReturnThis()
@@ -33,6 +52,11 @@ vi.mock("pixi.js", () => {
     poly = vi.fn().mockReturnThis()
     beginFill = vi.fn().mockReturnThis()
     endFill = vi.fn().mockReturnThis()
+  }
+
+  class MockSprite extends MockContainer {
+    anchor = { set: vi.fn() }
+    scale = { x: 1, y: 1, set: vi.fn() }
   }
 
   class MockText extends MockContainer {
@@ -61,6 +85,7 @@ vi.mock("pixi.js", () => {
   return {
     Container: MockContainer,
     Graphics: MockGraphics,
+    Sprite: MockSprite,
     Text: MockText,
     TextStyle: MockTextStyle,
   }

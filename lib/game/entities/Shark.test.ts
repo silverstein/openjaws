@@ -3,6 +3,20 @@ import type { SharkAIController } from "../ai/SharkAIController"
 import { Player } from "./Player"
 import { type AIDecision, Shark } from "./Shark"
 
+// Mock assetLoader (returns null textures so entities use Graphics fallback)
+vi.mock("@/lib/game/AssetLoader", () => ({
+  assetLoader: {
+    getTexture: vi.fn().mockReturnValue(null),
+    loadAssets: vi.fn().mockResolvedValue(undefined),
+  },
+}))
+
+// Mock logger
+vi.mock("@/lib/logger", () => ({
+  gameLogger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+  sharkLogger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+}))
+
 // Mock PIXI.js with class-based mocks for v8 compatibility
 vi.mock("pixi.js", () => {
   class MockContainer {
@@ -24,6 +38,10 @@ vi.mock("pixi.js", () => {
   class MockGraphics extends MockContainer {
     clear = vi.fn().mockReturnThis()
     circle = vi.fn().mockReturnThis()
+    ellipse = vi.fn().mockReturnThis()
+    rect = vi.fn().mockReturnThis()
+    roundRect = vi.fn().mockReturnThis()
+    arc = vi.fn().mockReturnThis()
     fill = vi.fn().mockReturnThis()
     stroke = vi.fn().mockReturnThis()
     moveTo = vi.fn().mockReturnThis()
@@ -47,6 +65,15 @@ vi.mock("pixi.js", () => {
     }
   }
 
+  class MockSprite extends MockContainer {
+    anchor = { set: vi.fn() }
+    scale = { x: 1, y: 1, set: vi.fn() }
+    texture = null
+    constructor() {
+      super()
+    }
+  }
+
   class MockTextStyle {
     fontFamily = "Arial"
     fontSize = 14
@@ -61,6 +88,7 @@ vi.mock("pixi.js", () => {
   return {
     Container: MockContainer,
     Graphics: MockGraphics,
+    Sprite: MockSprite,
     Text: MockText,
     TextStyle: MockTextStyle,
   }
@@ -430,13 +458,12 @@ describe("Shark Entity", () => {
 
   describe("Edge Cases", () => {
     it("should handle AI decision errors gracefully", async () => {
+      const { gameLogger } = await import("@/lib/logger")
       const mockController = {
         getDecision: vi.fn().mockRejectedValue(new Error("AI Error")),
       } as unknown as SharkAIController
 
       shark.setAIController(mockController)
-
-      const consoleSpy = vi.spyOn(console, "error")
 
       vi.useFakeTimers()
       vi.advanceTimersByTime(3000)
@@ -446,9 +473,8 @@ describe("Shark Entity", () => {
 
       await vi.runAllTimersAsync()
 
-      expect(consoleSpy).toHaveBeenCalledWith("[Game]", "Error polling AI decision:", expect.any(Error))
+      expect(gameLogger.error).toHaveBeenCalledWith("Error polling AI decision:", expect.any(Error))
 
-      consoleSpy.mockRestore()
       vi.useRealTimers()
     })
 
