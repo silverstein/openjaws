@@ -40,7 +40,7 @@ const GameContextSchema = z.object({
   currentPlayers: z.array(PlayerSchema).max(50),
   sharkPosition: PositionSchema,
   sharkHealth: z.number().min(0).max(100),
-  sharkPersonality: z.enum(["methodical", "theatrical", "vengeful", "philosophical", "meta"]),
+  sharkPersonality: z.enum(["methodical", "theatrical", "vengeful", "philosophical", "meta", "dadJoke"]),
   timeOfDay: z.enum(["dawn", "day", "dusk", "night"]),
   weatherCondition: z.enum(["calm", "stormy", "foggy"]),
   recentEvents: z.array(z.string().max(200)).max(50),
@@ -197,7 +197,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Context required" }, { status: 400 })
     }
 
-    const context = JSON.parse(contextStr) as GameContext
+    let context: GameContext
+    try {
+      context = JSON.parse(contextStr) as GameContext
+    } catch {
+      return NextResponse.json({ error: "Invalid context JSON" }, { status: 400 })
+    }
 
     // Stream shark thoughts
     const encoder = new TextEncoder()

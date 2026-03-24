@@ -103,7 +103,8 @@ export default defineSchema({
         v.literal("theatrical"),
         v.literal("vengeful"),
         v.literal("philosophical"),
-        v.literal("meta")
+        v.literal("meta"),
+        v.literal("dadJoke")
       )
     ),
 

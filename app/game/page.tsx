@@ -3,6 +3,7 @@
 import { useSearchParams } from "next/navigation"
 import { Suspense, useState } from "react"
 import { GameCanvas } from "@/components/game/GameCanvas"
+import { GameErrorBoundary } from "@/components/GameErrorBoundary"
 import { MultiplayerGameCanvas } from "@/components/game/MultiplayerGameCanvas"
 import type { Id } from "@/convex/_generated/dataModel"
 
@@ -77,7 +78,9 @@ export default function GamePage() {
         </div>
       }
     >
-      <GamePageContent />
+      <GameErrorBoundary>
+        <GamePageContent />
+      </GameErrorBoundary>
     </Suspense>
   )
 }

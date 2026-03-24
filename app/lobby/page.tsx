@@ -17,6 +17,7 @@ export default function LobbyPage() {
   const [creatingGame, setCreatingGame] = useState(false)
   const [showHowToPlay, setShowHowToPlay] = useState(false)
   const [dismissedLandscapeTip, setDismissedLandscapeTip] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const isTouchDevice = useIsTouchDevice()
   const isLandscape = useIsLandscape()
   const { initializeAudio, playSound, stopAllSounds } = useGameAudio() // Initialize useGameAudio
@@ -60,10 +61,11 @@ export default function LobbyPage() {
     await initializeAudio();
 
     if (!playerName.trim()) {
-      alert("Please enter your name")
+      setErrorMessage("Please enter your name!")
       return
     }
 
+    setErrorMessage(null)
     setCreatingGame(true)
     try {
       const gameId = await createGame({
@@ -75,7 +77,7 @@ export default function LobbyPage() {
       })
 
       // Join as a swimmer
-      const userId = `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+      const userId = `user-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`
       await joinGame({
         gameId,
         userId,
@@ -93,7 +95,7 @@ export default function LobbyPage() {
       router.push(`/game?gameId=${gameId}&userId=${userId}`)
     } catch (error) {
       console.error("Failed to create game:", error)
-      alert("Failed to create game. Please try again.")
+      setErrorMessage("Failed to create game. The shark might be busy... try again!")
     } finally {
       setCreatingGame(false)
     }
@@ -105,12 +107,13 @@ export default function LobbyPage() {
     await initializeAudio();
 
     if (!playerName.trim()) {
-      alert("Please enter your name")
+      setErrorMessage("Please enter your name!")
       return
     }
 
+    setErrorMessage(null)
     try {
-      const userId = `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+      const userId = `user-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`
       await joinGame({
         gameId,
         userId,
@@ -128,7 +131,7 @@ export default function LobbyPage() {
       router.push(`/game?gameId=${gameId}&userId=${userId}`)
     } catch (error) {
       console.error("Failed to join game:", error)
-      alert("Failed to join game. Game may be full or already started.")
+      setErrorMessage("Couldn't join — game might be full or the shark scared everyone away!")
     }
   }
 
@@ -255,6 +258,15 @@ export default function LobbyPage() {
                   </p>
                 )}
               </div>
+
+              {/* Error message */}
+              {errorMessage && (
+                <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 flex items-center gap-2">
+                  <span>🦈</span>
+                  <span>{errorMessage}</span>
+                  <button type="button" onClick={() => setErrorMessage(null)} className="ml-auto text-red-400 hover:text-red-600 font-bold">✕</button>
+                </div>
+              )}
 
               {/* Action buttons */}
               <div className="space-y-3">

@@ -136,7 +136,12 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: "Context required for greeting" }, { status: 400 })
       }
 
-      const context = JSON.parse(contextStr) as NPCContext
+      let context: NPCContext
+      try {
+        context = JSON.parse(contextStr) as NPCContext
+      } catch {
+        return NextResponse.json({ error: "Invalid context JSON" }, { status: 400 })
+      }
       const greeting = await generateNPCGreeting(context)
       const stats = getAPIUsageStats()
 

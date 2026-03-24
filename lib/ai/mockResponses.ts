@@ -136,6 +136,33 @@ const personalityResponses = {
       ],
     },
   },
+
+  dadJoke: {
+    thoughts: [
+      "Why don't sharks like fast food? Because they can't catch it! ...wait.",
+      "What did the shark say after eating a clownfish? That tasted funny!",
+      "I'm not just any shark, I'm a LOAN shark! ...get it? Because I'm always taking things!",
+      "What's a shark's favorite game? Swallow the leader!",
+      "I told my fin a joke. It didn't find it FINny. Heh. Heh.",
+    ],
+    actions: {
+      hunt: [
+        "Swimming toward lunch with a punchline ready",
+        "Preparing the ultimate bite... and joke delivery",
+        "What do you call a shark that delivers pizza? A deep dish predator!",
+      ],
+      taunt: [
+        "Why did the swimmer cross the ocean? To get to the OTHER TIDE!",
+        "Knock knock. Who's there? Shark. Shark who? Shark-ly you saw me coming!",
+        "I wanted to tell a beach joke but the punchline was too SHORE-t!",
+      ],
+      investigate: [
+        "Checking if this one appreciates quality humor",
+        "Swimming closer to deliver a joke at point-blank range",
+        "Scouting for an audience that actually laughs",
+      ],
+    },
+  },
 }
 
 // Pattern-based taunt generation
@@ -362,6 +389,7 @@ export function generateMockTaunt(context: GameContext, trigger: string): string
     vengeful: ["I never forget.", "This time, no escape."],
     philosophical: ["What brings you to seek death?", "The ocean claims all eventually."],
     meta: ["Nice hitbox you got there.", "Frame-perfect timing incoming."],
+    dadJoke: ["What do sharks eat? Whatever they WANT! Ha!", "I'm having a WHALE of a time! ...wrong species, but still!"],
   }
 
   const taunts = personalityTaunts[context.sharkPersonality]

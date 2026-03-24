@@ -6,6 +6,8 @@ import { gameLogger } from "@/lib/logger"
 import { NPCDialogue } from "@/components/ai/NPCDialogue"
 import { PersonalizedTaunts, TAUNT_TEMPLATES } from "@/components/ai/PersonalizedTaunts"
 import { SharkCommentary } from "@/components/ai/SharkCommentary"
+import { DeathScreen } from "./DeathScreen"
+import { SpectatorOverlay } from "./SpectatorOverlay"
 import { VolumeControl } from "@/components/ui/VolumeControl"
 import { useGameAudio } from "@/hooks/useGameAudio"
 import { useIsTouchDevice } from "@/hooks/useIsTouchDevice"
@@ -146,6 +148,8 @@ export function GameCanvas() {
   const [sharkHP, setSharkHP] = useState({ current: 150, max: 150 })
   const [lastSharkDamage, setLastSharkDamage] = useState<number | undefined>()
   const [victoryScreenVisible, setVictoryScreenVisible] = useState(false)
+  const [deathScreenVisible, setDeathScreenVisible] = useState(false)
+  const [spectatorMode, setSpectatorMode] = useState(false)
   const [playerStats, setPlayerStats] = useState({ damageDealt: 0, selfiesTaken: 0, deaths: 0 })
   const [minimapVisible, setMinimapVisible] = useState(true)
   const [hudVisible, setHudVisible] = useState(true)
@@ -195,7 +199,7 @@ export function GameCanvas() {
   const [patternRecognized, setPatternRecognized] = useState<
     { type: string; confidence: number } | undefined
   >()
-  const { checkPattern, getMemoryForPlayer } = useSharkMemory()
+  const { checkPattern, getMemoryForPlayer, loadMemories, saveObservation } = useSharkMemory()
 
   // Psychological warfare state
   const [isSharkThinking, setIsSharkThinking] = useState(false)
@@ -374,6 +378,17 @@ export function GameCanvas() {
 
       // Set shark personality without AI controller for now
       shark.setPersonality("theatrical") // Start with theatrical personality
+
+      // Load shark memories for returning players (grudge system)
+      loadMemories("shark_ai").then(() => {
+        const playerMemory = getMemoryForPlayer(playerIdentity.userId)
+        if (playerMemory) {
+          const relationship = (playerMemory as any).relationship || "neutral"
+          gameLogger.debug(`Shark remembers ${playerIdentity.playerName}! Relationship: ${relationship}`)
+        }
+      }).catch(() => {
+        // Memories unavailable (Convex not connected) — no problem, play without grudges
+      })
 
       // We'll use the AI SDK directly in the game loop instead of through the controller
       gameLogger.debug("Shark initialized with theatrical personality")
@@ -1619,32 +1634,18 @@ export function GameCanvas() {
             setPlayerStats(prev => ({ ...prev, deaths: prev.deaths + 1 }))
             // Play game over sound
             playSound("game_over", { volume: 0.7 })
-
-            // Game over screen
-            const gameOverBg = new Graphics()
-            gameOverBg.rect(0, 0, app.screen.width, app.screen.height)
-            gameOverBg.fill({ color: 0x000000, alpha: 0.8 })
-            app.stage.addChild(gameOverBg)
-
-            const exitInstruction = isTouchDevice ? "Tap EXIT to return to lobby" : "Press ESC to return to lobby"
-            const gameOverText = new Text(`🦈 GAME OVER 🦈\n\nThe shark got you!\n\n${exitInstruction}`, {
-                fontSize: isTouchDevice ? 32 : 40,
-                fill: 0xff0000,
-                align: "center",
-                fontWeight: "bold",
-                dropShadow: {
-                  distance: 3,
-                  angle: Math.PI / 4,
-                  blur: 4,
-                  color: 0x000000,
-                  alpha: 0.5
-                },
-            })
-            gameOverText.anchor.set(0.5)
-            gameOverText.x = app.screen.width / 2
-            gameOverText.y = app.screen.height / 2
-            app.stage.addChild(gameOverText)
-
+            // Save shark memory — the shark remembers this kill
+            const params = new URLSearchParams(window.location.search)
+            const gameId = params.get("gameId")
+            if (gameId) {
+              saveObservation("shark_ai", playerIdentity.userId, gameId as any, {
+                playerId: playerIdentity.userId,
+                userId: playerIdentity.userId,
+                pattern: { type: "behavior_pattern", data: { result: "caught" }, timestamp: Date.now() },
+              }).catch(() => { /* Convex unavailable — ok */ })
+            }
+            // Show React death screen with personality taunt
+            setDeathScreenVisible(true)
             // Stop the game loop
             app.ticker.stop()
           }
@@ -2278,6 +2279,38 @@ export function GameCanvas() {
         onPlayAgain={() => {
           setVictoryScreenVisible(false)
           window.location.reload() // Simple restart for now
+        }}
+      />
+
+      {/* Death Screen with personality-driven taunts */}
+      {deathScreenVisible && (
+        <DeathScreen
+          sharkPersonality={sharkAIState.personality}
+          playerName={playerIdentity.playerName}
+          stats={playerStats}
+          isTouchDevice={isTouchDevice}
+          onPlayAgain={() => {
+            setDeathScreenVisible(false)
+            setSpectatorMode(true)
+            // Resume game loop so the shark keeps swimming (for spectator view)
+            appRef.current?.ticker.start()
+          }}
+          onReturnToLobby={() => {
+            window.location.href = "/lobby"
+          }}
+        />
+      )}
+
+      {/* Spectator mode — watch the shark after death */}
+      <SpectatorOverlay
+        sharkPersonality={sharkAIState.personality}
+        visible={spectatorMode}
+        onPlayAgain={() => {
+          setSpectatorMode(false)
+          window.location.reload()
+        }}
+        onReturnToLobby={() => {
+          window.location.href = "/lobby"
         }}
       />
 

@@ -9,9 +9,19 @@ const aiGatewayConfig = {
   endpoint: process.env["AI_GATEWAY_ENDPOINT"], // optional override; defaults to SDK base URL
 }
 
-// Allow overriding the model id via env; prefer current Claude 4.5 naming
+// Allow overriding the model id via env
 const SHARK_MODEL_ID =
-  process.env["NEXT_PUBLIC_SHARK_MODEL"] || process.env["SHARK_MODEL"] || "claude-4.5-sonnet"
+  process.env["NEXT_PUBLIC_SHARK_MODEL"] || process.env["SHARK_MODEL"] || "claude-sonnet-4.5"
+
+// Check if any AI provider keys are configured.
+// Open source: supports both Vercel AI Gateway (OIDC/API key) and direct provider keys as fallback
+// for contributors who aren't deploying on Vercel.
+const hasAIKeys = !!(
+  aiGatewayConfig.apiKey ||
+  process.env["ANTHROPIC_API_KEY"] ||
+  process.env["GOOGLE_GENERATIVE_AI_API_KEY"] ||
+  process.env["OPENAI_API_KEY"]
+)
 
 // If a gateway key is present, use the Gateway provider (default base URL). Otherwise fall back
 // to vendor SDK clients. Base URL override is optional and only needed for self-hosted gateway.
@@ -23,18 +33,21 @@ const gateway = aiGatewayConfig.apiKey
   : null
 
 export const models = {
-  // Claude 4.5 - Primary model for shark intelligence
+  // Claude Sonnet 4.5 - Primary model for shark intelligence
   sharkBrain: gateway ? gateway(SHARK_MODEL_ID as string) : anthropic(SHARK_MODEL_ID as string),
 
   // Gemini 2.5 Flash - Cost-efficient for NPCs
   npcDialogue: gateway ? gateway("google/gemini-2.5-flash-preview") : google("gemini-2.5-flash-preview"),
 
-  // GPT-5.1 - Backup model for complex scenarios
-  complexDecisions: gateway ? gateway("openai/gpt-5.1") : openai("gpt-5.1"),
+  // GPT-5.4 - Backup model for complex scenarios
+  complexDecisions: gateway ? gateway("openai/gpt-5.4") : openai("gpt-5.4"),
 
   // Commentary model (using Gemini for cost efficiency)
   commentary: gateway ? gateway("google/gemini-2.5-flash-preview") : google("gemini-2.5-flash-preview"),
 } as const
+
+/** Whether real AI is available (API keys configured) */
+export { hasAIKeys }
 
 // Cost-optimized model selection
 export function selectModel(purpose: "shark" | "npc" | "commentary" | "complex") {
@@ -77,9 +90,9 @@ export const freeTierConfig = {
   FREE_TIER_LIMIT: parseInt(process.env["NEXT_PUBLIC_FREE_TIER_LIMIT"] || "100"),
   DAILY_RESET_HOUR: 0, // Reset at midnight UTC
 
-  // Mock mode settings
-  MOCK_MODE_ENABLED: process.env["NEXT_PUBLIC_MOCK_MODE_ENABLED"] === "true",
-  FORCE_MOCK_MODE: process.env["NEXT_PUBLIC_FORCE_MOCK_MODE"] === "true",
+  // Mock mode settings — default to mock when no AI keys are configured
+  MOCK_MODE_ENABLED: process.env["NEXT_PUBLIC_MOCK_MODE_ENABLED"] !== "false",
+  FORCE_MOCK_MODE: process.env["NEXT_PUBLIC_FORCE_MOCK_MODE"] === "true" || !hasAIKeys,
 
   // Cache settings
   CACHE_DURATION: 5 * 60 * 1000, // 5 minutes
