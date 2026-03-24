@@ -23,6 +23,7 @@ export interface NPCContext {
   recentSharkSighting?: boolean
   timeOfDay: "dawn" | "day" | "dusk" | "night"
   previousMessages?: string[]
+  currentObjectiveHint?: string
 }
 
 const npcPersonalities: Record<NPCType, string> = {
@@ -90,20 +91,24 @@ export async function* streamNPCResponse(
   const conversationHistory =
     context.previousMessages?.join("\n") || "This is your first interaction."
 
+  const objectiveHint = context.currentObjectiveHint
+    ? `\n- The player is currently trying to: ${context.currentObjectiveHint}. If relevant, casually mention a hint about where to go or what to do — but stay in character, don't break immersion.`
+    : ""
+
   const prompt = `You are ${context.npcName}, a ${context.npcType.replace("_", " ")}.
 ${npcPersonalities[context.npcType]}
 
 Current situation:
 - Time: ${context.timeOfDay}
 - Event: ${context.currentEvent ? eventPrompts[context.currentEvent] : eventPrompts["calm"]}
-- Recent shark sighting: ${context.recentSharkSighting ? "Yes, very recently!" : "No"}
+- Recent shark sighting: ${context.recentSharkSighting ? "Yes, very recently!" : "No"}${objectiveHint}
 
 Previous conversation:
 ${conversationHistory}
 
 The player "${context.playerName}" just said: "${playerMessage}"
 
-Respond naturally and in character. Keep responses brief (1-3 sentences) unless the player asks for more detail. 
+Respond naturally and in character. Keep responses brief (1-3 sentences) unless the player asks for more detail.
 If there's danger, balance your personality with appropriate concern.`
 
   try {

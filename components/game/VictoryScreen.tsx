@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion"
 import { useEffect, useState } from "react"
+import { loadHighScores } from "@/lib/game/HighScores"
 
 interface VictoryScreenProps {
   visible: boolean
@@ -22,6 +23,18 @@ export function VictoryScreen({ visible, stats, round, score, onPlayAgain }: Vic
   >([])
 
   const isMVP = stats.damageDealt > 500 && stats.deaths === 0
+  const [isNewHighScore, setIsNewHighScore] = useState(false)
+
+  useEffect(() => {
+    if (visible && score !== undefined) {
+      const prev = loadHighScores()
+      // Score was already saved before victory screen shows, so current best IS this score
+      // Check if recentGames[0] is the only entry with this score (meaning it's new)
+      if (prev.recentGames.length <= 1 || score > (prev.recentGames[1]?.score ?? 0)) {
+        setIsNewHighScore(true)
+      }
+    }
+  }, [visible, score])
 
   useEffect(() => {
     if (!visible) {
@@ -300,6 +313,19 @@ export function VictoryScreen({ visible, stats, round, score, onPlayAgain }: Vic
                     <p className="text-white/90 text-sm">Not a scratch! Legend status.</p>
                   </motion.div>
                 )}
+              </motion.div>
+            )}
+
+            {/* New High Score */}
+            {isNewHighScore && score !== undefined && score > 0 && (
+              <motion.div
+                className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl p-3 text-center shadow-lg mb-4"
+                initial={{ scale: 0, rotate: 360 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ delay: 2.2, type: "spring", stiffness: 200 }}
+              >
+                <p className="text-white font-black text-2xl">🎉 NEW HIGH SCORE! 🎉</p>
+                <p className="text-white/90 text-lg font-bold">{score} points</p>
               </motion.div>
             )}
 

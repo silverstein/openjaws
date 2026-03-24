@@ -1,53 +1,62 @@
 # Beach Panic: Jaws Royale — TODO
 
-## Priority 1: Multiplayer Polish
+## What's Been Done (this session)
 
-The multiplayer infrastructure exists (Convex schema, hooks, MultiplayerGameCanvas) but needs testing and fixes.
+- [x] Fix model IDs and AI SDK v6 upgrade
+- [x] Mock mode default (safe for open source)
+- [x] Fix GET endpoint validation
+- [x] ErrorBoundary with funny shark messages
+- [x] Replace alert() with inline errors
+- [x] Dad Joke Shark personality
+- [x] Death screen with personality taunts
+- [x] Spectator mode with AI commentary
+- [x] Shark grudge/memory system wired up
+- [x] Synthetic sound effects (Web Audio API)
+- [x] MIT License + CONTRIBUTING.md
+- [x] GameHUD component extraction
+- [x] Improved character sprites (accessories per archetype)
+- [x] Improved shark sprite (torpedo body, mood-reactive eyes, difficulty glow)
+- [x] Fix all tests: 124/124 passing
+- [x] Fix CI (pnpm, typecheck)
+- [x] Screen shake, close-call detection, tension vignette
+- [x] Round-based objective progression (3 scripted + escalation)
+- [x] Discovery tutorial hints
+- [x] Round transition banner
+- [x] Shark difficulty scaling per round
+- [x] High scores (localStorage)
+- [x] Shark personality picker in lobby
+- [x] Reactive tension audio
+- [x] Camera flash on selfie
+- [x] Particle system (splash, bubbles, chomp, hit, sparkle)
+- [x] Floating damage/score numbers
+- [x] Shark fin surface effect + wake trail
+- [x] Score/round in HUD
+- [x] NPC dialogue hints about current objective
+- [x] NEW HIGH SCORE detection on victory
+- [x] Proper metadata (title, description, OpenGraph)
+- [x] Mobile viewport (viewport-fit, no-zoom, overscroll-behavior)
+- [x] Multiplayer position interpolation
 
-### What needs fixing:
-- **Position interpolation**: Other players teleport between updates (50ms throttle). Add lerp between position updates so movement looks smooth.
-  - File: `components/game/MultiplayerGameCanvas.tsx` — where `otherPlayers` positions are rendered
-  - Approach: Store previous + current position per player, lerp between them each frame
-- **Host migration**: If the host (shark AI controller) disconnects, the game freezes. Need to detect host disconnect and either migrate or end gracefully.
-  - File: `hooks/useMultiplayerGame.ts`
-  - Approach: Add a heartbeat check — if host hasn't updated in 10s, show "Host disconnected" message
-- **Connection status indicator**: Show "Connected / Reconnecting / Disconnected" somewhere in the HUD
-  - Convex handles reconnection automatically, but the UI should reflect connection state
-- **Test on two devices**: Open two browser tabs with different player names, create a game in one, join from the other
+## Remaining
 
-### What already works:
-- Game creation and joining (Convex mutations)
-- Real-time position sync via subscriptions
-- Shark state sync (host broadcasts)
-- Player eaten events
-- Tab-close cleanup (beforeunload handler)
+### Priority 1: Multiplayer Testing
+- **Test on two actual devices** — the code has interpolation and cleanup, but needs real-world testing
+- **Host disconnect handling** — detect when host goes offline, show message
+- **Latency compensation** — the lerp is basic, may need dead reckoning for fast movement
 
-## Priority 2: Mobile Polish
+### Priority 2: Audio
+- **Replace synth sounds with real audio** — the synth fallback works but real MP3s for chomp, splash, music would be much more immersive
+- **Dynamic music system** — calm beach music that transitions to tense Jaws-like theme based on tension level (currently just plays/stops tension sound)
 
-Touch controls exist but haven't been tested on real devices.
+### Priority 3: Visual
+- **Sprite animations** — currently static shapes, could add walking/swimming frame animations via programmatic Graphics
+- **Beach environment details** — sandcastles, umbrellas, seagulls as decorative elements
+- **Water shader polish** — the shader exists but could be more dynamic
 
-### What needs checking:
-- **Touch target sizes**: Ensure all interactive buttons are 44px minimum (Apple HIG)
-  - Check: lobby character selection buttons, game action buttons, HUD buttons
-- **Viewport scaling**: The game canvas should fill the viewport without scroll. Test `100dvh` on Safari iOS.
-- **Safe area insets**: Notch/Dynamic Island devices need `env(safe-area-inset-*)` padding
-  - File: `app/layout.tsx` — add `viewport-fit=cover` meta tag
-  - File: `app/game/page.tsx` — add safe area padding
-- **Joystick responsiveness**: The virtual joystick should feel snappy, not laggy. Test touch event vs pointer event performance.
-- **Orientation**: Force landscape in game? Or adapt to portrait with adjusted layout?
-  - The landscape tip already shows in lobby (good)
-  - Game should still be playable in portrait, just cramped
-
-### Quick wins:
-- Add `viewport-fit=cover` to the HTML meta viewport tag
-- Add `pb-safe` / `pt-safe` Tailwind classes to game page
-- Test in Chrome DevTools mobile emulator first
-
-## Priority 3: Future Enhancements (defer)
-
-- **GameCanvas refactor**: Break the remaining 2400 lines into game loop hook, entity manager, and AI overlay components. Biggest tech debt.
-- **Real audio files**: Replace synth sounds with real MP3s (chomp, splash, music). The synth fallback works but real audio would be much more immersive.
-- **Convex `v.any()` cleanup**: Replace 7 uses of `v.any()` in schema.ts with proper typed validators.
-- **Better sprite art**: The programmatic fallbacks are charming but proper pixel art would look much better.
-- **Leaderboard**: Track high scores across games via Convex. "Most times escaped", "Most selfies taken", etc.
-- **New shark personality: "Baby Shark"**: Plays the song while hunting. Your kid would either love or hate this.
+### Future Ideas
+- **Leaderboard** — global scores via Convex (not just localStorage)
+- **New shark personality: "Baby Shark"** — plays the song while hunting
+- **New character: "The Mayor"** — refuses to close the beach (Jaws reference)
+- **Replay system** — record and share best moments
+- **Custom beach maps** — different layouts, obstacles
+- **Weather events** — fog (reduces visibility), storm (bigger waves)

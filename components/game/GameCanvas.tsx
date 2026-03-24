@@ -2570,6 +2570,7 @@ export function GameCanvas() {
           }}
           currentEvent={npcEvent}
           recentSharkSighting={npcEvent === "shark_nearby"}
+          currentObjectiveHint={objectiveSystemRef.current?.getCurrentObjective()?.description}
         />
       )}
 

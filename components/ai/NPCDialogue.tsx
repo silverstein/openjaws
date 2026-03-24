@@ -22,6 +22,7 @@ interface NPCDialogueProps {
   currentEvent?: NPCContext["currentEvent"]
   timeOfDay?: NPCContext["timeOfDay"]
   recentSharkSighting?: boolean
+  currentObjectiveHint?: string
   onClose?: () => void
 }
 
@@ -34,6 +35,7 @@ export function NPCDialogue({
   currentEvent,
   timeOfDay = "day",
   recentSharkSighting = false,
+  currentObjectiveHint,
   onClose,
 }: NPCDialogueProps) {
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([])
@@ -125,9 +127,10 @@ export function NPCDialogue({
       currentEvent,
       timeOfDay,
       recentSharkSighting,
+      currentObjectiveHint,
       previousMessages: chatHistory.map((m) => `${m.role === "player" ? playerName : npcName}: ${m.content}`),
     }
-  }, [npcType, npcName, playerName, currentEvent, timeOfDay, recentSharkSighting, chatHistory])
+  }, [npcType, npcName, playerName, currentEvent, timeOfDay, recentSharkSighting, currentObjectiveHint, chatHistory])
 
   // Fetch greeting when player approaches
   useEffect(() => {
