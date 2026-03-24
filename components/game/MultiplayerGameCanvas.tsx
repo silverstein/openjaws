@@ -30,6 +30,7 @@ export function MultiplayerGameCanvas({ gameId, userId, playerName }: Multiplaye
   const appRef = useRef<Application | null>(null)
   const localPlayerRef = useRef<Player | null>(null)
   const otherPlayerGraphicsRef = useRef<Map<string, Graphics>>(new Map())
+  const otherPlayerTargetsRef = useRef<Map<string, { x: number; y: number }>>(new Map())
   const sharkRef = useRef<Shark | null>(null)
   const router = useRouter()
 
@@ -180,6 +181,23 @@ export function MultiplayerGameCanvas({ gameId, userId, playerName }: Multiplaye
           )
         }
 
+        // Interpolate other player positions (smooth movement)
+        for (const [id, target] of otherPlayerTargetsRef.current.entries()) {
+          const graphics = otherPlayerGraphicsRef.current.get(id)
+          if (graphics) {
+            const lerpSpeed = 0.15
+            graphics.x += (target.x - graphics.x) * lerpSpeed
+            graphics.y += (target.y - graphics.y) * lerpSpeed
+          }
+        }
+
+        // Interpolate shark position for non-host clients
+        if (!isHost && sharkRef.current && sharkState) {
+          const lerpSpeed = 0.12
+          sharkRef.current.container.x += (sharkState.position.x - sharkRef.current.container.x) * lerpSpeed
+          sharkRef.current.container.y += (sharkState.position.y - sharkRef.current.container.y) * lerpSpeed
+        }
+
         // Update water shader
         if (waterShader) {
           waterShader.time = now / 1000
@@ -236,9 +254,11 @@ export function MultiplayerGameCanvas({ gameId, userId, playerName }: Multiplaye
         graphics.addChild(nameText)
       }
 
-      // Update position
-      graphics.x = player.position.x
-      graphics.y = player.position.y
+      // Store target position for interpolation (actual lerp happens in game loop)
+      otherPlayerTargetsRef.current.set(player._id, {
+        x: player.position.x,
+        y: player.position.y,
+      })
     }
   }, [otherPlayers])
 
@@ -333,13 +353,17 @@ export function MultiplayerGameCanvas({ gameId, userId, playerName }: Multiplaye
 
       {/* HUD */}
       <div className="absolute top-4 left-4 bg-black/50 backdrop-blur-sm rounded-lg p-4 text-white">
-        <h2 className="font-bold text-lg mb-2">
-          {gameDetails?.game.beachName || "Beach Panic"}
-        </h2>
+        <div className="flex items-center gap-2 mb-2">
+          <h2 className="font-bold text-lg">
+            {gameDetails?.game.beachName || "Beach Panic"}
+          </h2>
+          <span className={`w-2 h-2 rounded-full ${gameDetails ? "bg-green-400 animate-pulse" : "bg-yellow-400"}`} title={gameDetails ? "Connected" : "Connecting..."} />
+        </div>
         <div className="text-sm space-y-1">
           <p>Players: {gameDetails?.game.currentPlayers}/{gameDetails?.game.maxPlayers}</p>
           <p>Your name: {playerName}</p>
           {isHost && <p className="text-yellow-400">🎮 You control the shark!</p>}
+          {!gameDetails && <p className="text-yellow-300 text-xs animate-pulse">Reconnecting...</p>}
         </div>
       </div>
 

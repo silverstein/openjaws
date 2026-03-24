@@ -10,10 +10,12 @@ interface VictoryScreenProps {
     selfiesTaken: number
     deaths: number
   }
+  round?: number
+  score?: number
   onPlayAgain: () => void
 }
 
-export function VictoryScreen({ visible, stats, onPlayAgain }: VictoryScreenProps) {
+export function VictoryScreen({ visible, stats, round, score, onPlayAgain }: VictoryScreenProps) {
   const [phase, setPhase] = useState<"entrance" | "stats" | "celebration">("entrance")
   const [confettiParticles, setConfettiParticles] = useState<
     Array<{ id: number; emoji: string; x: number; delay: number; duration: number }>
@@ -179,6 +181,44 @@ export function VictoryScreen({ visible, stats, onPlayAgain }: VictoryScreenProp
                 </h2>
 
                 <div className="space-y-4">
+                  {round && (
+                    <motion.div
+                      className="flex justify-between items-center border-b border-gray-200 pb-3"
+                      initial={{ x: -50, opacity: 0 }}
+                      animate={{ x: 0, opacity: 1 }}
+                      transition={{ delay: 1.1 }}
+                    >
+                      <span className="text-lg text-gray-700 font-medium">Beaten on Round</span>
+                      <motion.span
+                        className="text-2xl font-bold text-blue-600"
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ delay: 1.15, type: "spring", stiffness: 200 }}
+                      >
+                        {round}
+                      </motion.span>
+                    </motion.div>
+                  )}
+
+                  {score !== undefined && score > 0 && (
+                    <motion.div
+                      className="flex justify-between items-center border-b border-gray-200 pb-3"
+                      initial={{ x: -50, opacity: 0 }}
+                      animate={{ x: 0, opacity: 1 }}
+                      transition={{ delay: 1.15 }}
+                    >
+                      <span className="text-lg text-gray-700 font-medium">Final Score</span>
+                      <motion.span
+                        className="text-2xl font-bold text-yellow-600"
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ delay: 1.2, type: "spring", stiffness: 200 }}
+                      >
+                        {score}
+                      </motion.span>
+                    </motion.div>
+                  )}
+
                   <motion.div
                     className="flex justify-between items-center border-b border-gray-200 pb-3"
                     initial={{ x: -50, opacity: 0 }}

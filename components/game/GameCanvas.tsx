@@ -115,6 +115,7 @@ export function GameCanvas() {
   const tensionRef = useRef(new TensionTracker())
   const [tensionMood, setTensionMood] = useState<"calm" | "tense" | "danger" | "panic">("calm")
   const [closeCallFlash, setCloseCallFlash] = useState<"near_miss" | "close_call" | null>(null)
+  const [cameraFlash, setCameraFlash] = useState(false)
 
   // Round and discovery systems
   const discoveryRef = useRef(new DiscoverySystem())
@@ -575,6 +576,9 @@ export function GameCanvas() {
             if (success) {
               gameLogger.debug("Selfie successful!")
               playSound("selfie_camera", { volume: 0.7 })
+              // Camera flash effect!
+              setCameraFlash(true)
+              setTimeout(() => setCameraFlash(false), 300)
               // Track selfie for stats
               setPlayerStats(prev => ({ ...prev, selfiesTaken: prev.selfiesTaken + 1 }))
               // Make shark angry after selfie
@@ -717,6 +721,7 @@ export function GameCanvas() {
               setPlayerPoints(prev => prev - price)
               setPlayerFishInventory(prev => [...prev, fishType])
               playSound("item_pickup", { volume: 0.6 })
+              objectiveSystemRef.current?.handleEvent({ type: "fish_bought" })
               gameLogger.debug(`Bought ${fishType} for ${price} points!`)
 
               // Visual feedback
@@ -2254,6 +2259,9 @@ export function GameCanvas() {
       if (success) {
         gameLogger.debug("Selfie successful!")
         playSound("selfie_camera", { volume: 0.7 })
+        setCameraFlash(true)
+        setTimeout(() => setCameraFlash(false), 300)
+        setPlayerStats(prev => ({ ...prev, selfiesTaken: prev.selfiesTaken + 1 }))
         shark.setRage(shark.getRage() + 50)
       }
     }
@@ -2344,6 +2352,11 @@ export function GameCanvas() {
         onComplete={() => setRecognitionMoment((prev) => ({ ...prev, active: false }))}
       />
 
+      {/* Camera flash effect for selfies */}
+      {cameraFlash && (
+        <div className="fixed inset-0 z-50 pointer-events-none bg-white animate-[flashOut_0.3s_ease-out_forwards]" />
+      )}
+
       {/* Close call flash — "THAT WAS CLOSE!" */}
       {closeCallFlash && (
         <div className={`fixed inset-0 z-50 pointer-events-none transition-opacity duration-300 ${
@@ -2423,6 +2436,8 @@ export function GameCanvas() {
       <VictoryScreen
         visible={victoryScreenVisible}
         stats={playerStats}
+        round={objectiveSystemRef.current?.getCurrentRound()}
+        score={objectiveSystemRef.current?.getScore()}
         onPlayAgain={() => {
           setVictoryScreenVisible(false)
           window.location.reload() // Simple restart for now

@@ -61,3 +61,27 @@ canvas {
     min-height: 100dvh;
   }
 }
+
+/* Camera flash animation for selfies */
+@keyframes flashOut {
+  0% { opacity: 0.9; }
+  100% { opacity: 0; }
+}
+
+/* Slide-in animation for discovery hints */
+@keyframes fadeSlide {
+  0% { opacity: 0; transform: translate(-50%, -10px); }
+  100% { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* Prevent pull-to-refresh on mobile during gameplay */
+body:has(canvas) {
+  overscroll-behavior: none;
+  touch-action: none;
+}
+
+/* Minimum touch target size */
+.touch-target {
+  min-width: 44px;
+  min-height: 44px;
+}
