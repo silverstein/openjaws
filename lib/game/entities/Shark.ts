@@ -285,22 +285,45 @@ export class Shark {
   private drawEffects(): void {
     this.effectsGraphics.clear()
 
-    // Add detection radius visualization (debug)
-    if (this.currentState === "patrol") {
-      this.effectsGraphics.circle(0, 0, this.detectionRadius)
-      this.effectsGraphics.stroke({ width: 1, color: 0x4ecdc4, alpha: 0.1 })
+    // Surface fin — the classic Jaws silhouette
+    // Shows when shark is near the water surface (not deep)
+    if (this.currentState === "patrol" || this.currentState === "hunting") {
+      const finWobble = Math.sin(Date.now() * 0.003) * 2
+      const finAlpha = this.currentState === "hunting" ? 0.9 : 0.6
+
+      // Dorsal fin peeking above
+      this.effectsGraphics.moveTo(0, -45 + finWobble)
+      this.effectsGraphics.lineTo(10, -30 + finWobble)
+      this.effectsGraphics.lineTo(-3, -32 + finWobble)
+      this.effectsGraphics.closePath()
+      this.effectsGraphics.fill({ color: PALETTE.sharkFin, alpha: finAlpha })
+      this.effectsGraphics.stroke({ width: 1.5, color: OUTLINE.color, alpha: finAlpha * 0.8 })
+
+      // Wake trail behind fin
+      for (let i = 1; i <= 3; i++) {
+        const trailAlpha = (0.15 - i * 0.04) * finAlpha
+        const trailY = 10 + i * 12 + finWobble
+        this.effectsGraphics.ellipse(0, trailY, 8 + i * 3, 2)
+        this.effectsGraphics.stroke({ width: 1, color: 0xffffff, alpha: trailAlpha })
+      }
     }
 
-    // Stunned effect
+    // Stunned effect — spinning stars
     if (this.currentState === "stunned") {
-      // Draw stars around head
       for (let i = 0; i < 3; i++) {
-        const angle = (i / 3) * Math.PI * 2 + Date.now() * 0.001
+        const angle = (i / 3) * Math.PI * 2 + Date.now() * 0.003
         const starX = Math.cos(angle) * 30
-        const starY = Math.sin(angle) * 30 - 20
+        const starY = Math.sin(angle) * 20 - 25
         this.effectsGraphics.star(starX, starY, 5, 8, 4)
         this.effectsGraphics.fill(0xffd700)
       }
+    }
+
+    // Eating effect — happy circles
+    if (this.currentState === "eating") {
+      const pulse = Math.sin(Date.now() * 0.01) * 5
+      this.effectsGraphics.circle(0, -40, 8 + pulse)
+      this.effectsGraphics.fill({ color: 0x00ff00, alpha: 0.3 })
     }
   }
 

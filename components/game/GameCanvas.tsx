@@ -2606,6 +2606,8 @@ export function GameCanvas() {
         aiThoughts={aiThoughts}
         nearbyNPC={nearbyNPC}
         activeNPC={activeNPC}
+        currentRound={objectiveSystemRef.current?.getCurrentRound() ?? 1}
+        currentScore={objectiveSystemRef.current?.getScore() ?? 0}
         onPickup={() => {
           if (playerRef.current && beachItemSpawnerRef.current && entityLayerRef.current) {
             const player = playerRef.current

@@ -29,6 +29,8 @@ interface GameHUDProps {
   aiThoughts: string
   nearbyNPC: NPC | null
   activeNPC: NPC | null
+  currentRound: number
+  currentScore: number
   onPickup: () => void
   onThrow: () => void
 }
@@ -54,6 +56,8 @@ export function GameHUD({
   aiThoughts,
   nearbyNPC,
   activeNPC,
+  currentRound,
+  currentScore,
   onPickup,
   onThrow,
 }: GameHUDProps) {
@@ -64,8 +68,12 @@ export function GameHUD({
       {/* Player Status */}
       {hudVisible && (
         <div className="fixed top-3 right-3 sm:top-4 sm:right-4 z-30 bg-black/50 text-white px-3 py-2.5 sm:px-4 sm:py-3 rounded-lg shadow-md w-48 sm:w-56 backdrop-blur">
+          <div className="flex items-center justify-between mb-1.5">
+            <h3 className="text-sm font-bold">R{currentRound}</h3>
+            <div className="text-[11px] text-yellow-300 font-mono font-bold">{currentScore} pts</div>
+          </div>
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-bold">Player</h3>
+            <span className="text-[11px] text-white/60">Coins</span>
             <div className="text-[11px] text-white/70 font-mono">💰 {playerPoints}</div>
           </div>
           <div className="space-y-2 text-xs">
