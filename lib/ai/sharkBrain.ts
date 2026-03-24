@@ -157,7 +157,6 @@ Respond with a JSON object containing:
       model: models.sharkBrain,
       prompt,
       temperature: aiConfig.temperature.shark,
-      maxOutputTokens: aiConfig.maxTokens.shark, // v5 uses maxOutputTokens instead of maxTokens
     })
 
     // Check if result has the expected structure
@@ -231,7 +230,6 @@ Stream your inner thoughts as you ${recentAction}. Stay in character with your p
       model: models.sharkBrain,
       prompt,
       temperature: aiConfig.temperature.shark + 0.1, // Slightly more creative for thoughts
-      maxOutputTokens: 150, // v5 uses maxOutputTokens instead of maxTokens
     })
 
     for await (const chunk of stream.textStream) {
@@ -372,7 +370,6 @@ Keep it under 10 words. Be creative and personality-appropriate.`
       model: models.sharkBrain,
       prompt,
       temperature: aiConfig.temperature.shark + 0.2, // More creative for taunts
-      maxOutputTokens: 50, // v5 uses maxOutputTokens
     })
 
     const taunt = text.trim()

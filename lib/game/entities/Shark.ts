@@ -174,46 +174,79 @@ export class Shark {
   private drawSharkFallback(): void {
     if (!(this.sprite instanceof Graphics)) return
 
-    this.sprite.clear()
+    const g = this.sprite
+    g.clear()
 
-    // Draw shark body (elongated triangle)
-    this.sprite.moveTo(0, -40)
-    this.sprite.lineTo(20, 30)
-    this.sprite.lineTo(0, 20)
-    this.sprite.lineTo(-20, 30)
-    this.sprite.closePath()
-    this.sprite.fill(0x2c3e50)
-    this.sprite.stroke({ width: 2, color: 0x1a252f })
+    const isAggro = this.currentState === "attacking" || this.currentState === "hunting"
 
-    // Draw dorsal fin
-    this.sprite.moveTo(0, -10)
-    this.sprite.lineTo(15, 5)
-    this.sprite.lineTo(-15, 5)
-    this.sprite.closePath()
-    this.sprite.fill(0x34495e)
+    // Shark body — smooth torpedo shape
+    g.ellipse(0, -5, 18, 40)
+    g.fill(isAggro ? 0x3d566e : 0x4a6b8a)
+    g.stroke({ width: 2, color: 0x1a252f })
 
-    // Draw tail fin
-    this.sprite.moveTo(0, 20)
-    this.sprite.lineTo(25, 40)
-    this.sprite.lineTo(0, 30)
-    this.sprite.lineTo(-25, 40)
-    this.sprite.closePath()
-    this.sprite.fill(0x2c3e50)
-    this.sprite.stroke({ width: 1, color: 0x1a252f })
+    // Belly (lighter underside)
+    g.ellipse(0, 5, 12, 25)
+    g.fill(0x8eafc0)
 
-    // Draw eyes based on state
-    const eyeColor = this.currentState === "attacking" ? 0xff0000 : 0x000000
-    this.sprite.circle(-10, -20, 3)
-    this.sprite.circle(10, -20, 3)
-    this.sprite.fill(eyeColor)
+    // Dorsal fin — tall and menacing
+    g.moveTo(0, -20)
+    g.lineTo(18, -5)
+    g.lineTo(2, -5)
+    g.closePath()
+    g.fill(0x3d566e)
+    g.stroke({ width: 1.5, color: 0x1a252f })
 
-    // Draw teeth when attacking
-    if (this.currentState === "attacking" || this.currentState === "hunting") {
-      for (let i = -3; i <= 3; i++) {
-        this.sprite.poly([i * 4 - 2, -35, i * 4, -30, i * 4 + 2, -35])
-        this.sprite.fill(0xffffff)
-      }
+    // Tail fin — forked
+    g.moveTo(0, 30)
+    g.lineTo(20, 45)
+    g.lineTo(0, 38)
+    g.lineTo(-20, 45)
+    g.closePath()
+    g.fill(0x3d566e)
+    g.stroke({ width: 1, color: 0x1a252f })
+
+    // Pectoral fins (side fins)
+    g.moveTo(-16, 0)
+    g.lineTo(-30, 12)
+    g.lineTo(-16, 8)
+    g.closePath()
+    g.fill(0x4a6b8a)
+    g.moveTo(16, 0)
+    g.lineTo(30, 12)
+    g.lineTo(16, 8)
+    g.closePath()
+    g.fill(0x4a6b8a)
+
+    // Eyes — angry when hunting, calm when patrolling
+    const eyeColor = isAggro ? 0xff0000 : 0xffcc00
+    g.circle(-8, -25, isAggro ? 4 : 3)
+    g.circle(8, -25, isAggro ? 4 : 3)
+    g.fill(eyeColor)
+    // Pupils
+    g.circle(-8, -25, 1.5)
+    g.circle(8, -25, 1.5)
+    g.fill(0x000000)
+
+    // Mouth — always has teeth showing
+    g.moveTo(-12, -35)
+    g.lineTo(0, -38)
+    g.lineTo(12, -35)
+    g.stroke({ width: 1.5, color: 0x1a252f })
+
+    // Teeth — always visible, more when aggressive
+    const teethCount = isAggro ? 5 : 3
+    for (let i = -teethCount; i <= teethCount; i++) {
+      const tx = i * 3
+      g.moveTo(tx - 1.5, -35)
+      g.lineTo(tx, isAggro ? -42 : -39)
+      g.lineTo(tx + 1.5, -35)
+      g.fill(0xffffff)
     }
+
+    // Scars (adds character)
+    g.moveTo(-5, -10)
+    g.lineTo(3, -15)
+    g.stroke({ width: 1, color: 0x2c3e50, alpha: 0.5 })
   }
 
   private drawEffects(): void {

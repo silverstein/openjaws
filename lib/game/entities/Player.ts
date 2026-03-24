@@ -205,25 +205,89 @@ export class Player {
     if (!(this.sprite instanceof Graphics)) return
 
     this.sprite.clear()
+    const g = this.sprite
+    const color = this.stats.color
 
-    // Draw main body circle
-    this.sprite.circle(0, 0, 20)
-    this.sprite.fill(this.stats.color)
-    this.sprite.stroke({ width: 2, color: 0x000000 })
+    // Body — rounded rectangle for a friendlier look
+    g.roundRect(-14, -18, 28, 36, 8)
+    g.fill(color)
+    g.stroke({ width: 2, color: 0x000000 })
 
-    // Draw simple face
-    this.sprite.circle(-7, -5, 3)
-    this.sprite.circle(7, -5, 3)
-    this.sprite.fill(0x000000)
+    // Head circle
+    g.circle(0, -22, 12)
+    g.fill(0xffdbac) // Skin tone
+    g.stroke({ width: 2, color: 0x000000 })
 
-    // Draw direction indicator
-    this.sprite.moveTo(0, -20)
-    this.sprite.lineTo(10, -30)
-    this.sprite.lineTo(0, -25)
-    this.sprite.lineTo(-10, -30)
-    this.sprite.closePath()
-    this.sprite.fill(this.stats.color)
-    this.sprite.stroke({ width: 1, color: 0x000000 })
+    // Eyes
+    g.circle(-4, -24, 2.5)
+    g.circle(4, -24, 2.5)
+    g.fill(0x000000)
+
+    // Smile
+    g.arc(0, -20, 5, 0.1, Math.PI - 0.1)
+    g.stroke({ width: 1.5, color: 0x000000 })
+
+    // Character-specific accessory
+    switch (this.characterType) {
+      case "influencer":
+        // Phone
+        g.roundRect(8, -10, 8, 14, 2)
+        g.fill(0x333333)
+        g.stroke({ width: 1, color: 0x000000 })
+        // Screen glow
+        g.roundRect(9, -8, 6, 8, 1)
+        g.fill(0x4ecdc4)
+        break
+      case "boomerDad":
+        // Baseball cap
+        g.ellipse(0, -32, 14, 4)
+        g.fill(0x1e3a5f)
+        g.roundRect(-10, -35, 20, 6, 2)
+        g.fill(0x1e3a5f)
+        // Brim
+        g.roundRect(-16, -30, 16, 3, 1)
+        g.fill(0x1e3a5f)
+        break
+      case "surferBro":
+        // Sunglasses
+        g.roundRect(-9, -26, 8, 5, 2)
+        g.roundRect(1, -26, 8, 5, 2)
+        g.fill(0x111111)
+        // Hair (messy)
+        g.moveTo(-10, -32)
+        g.lineTo(-6, -38)
+        g.lineTo(0, -34)
+        g.lineTo(6, -38)
+        g.lineTo(10, -32)
+        g.fill(0xdaa520)
+        break
+      case "lifeguard":
+        // Red cross on body
+        g.rect(-3, -14, 6, 16)
+        g.rect(-8, -8, 16, 6)
+        g.fill(0xffffff)
+        break
+      case "marineBiologist":
+        // Glasses
+        g.circle(-5, -24, 4)
+        g.circle(5, -24, 4)
+        g.stroke({ width: 1.5, color: 0x333333 })
+        g.moveTo(-1, -24)
+        g.lineTo(1, -24)
+        g.stroke({ width: 1, color: 0x333333 })
+        break
+      case "springBreaker":
+        // Party hat
+        g.moveTo(0, -42)
+        g.lineTo(8, -30)
+        g.lineTo(-8, -30)
+        g.closePath()
+        g.fill(0xff1493)
+        // Stars on hat
+        g.star(0, -37, 3, 4, 2)
+        g.fill(0xffd700)
+        break
+    }
   }
 
   private drawEffects(): void {

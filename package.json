@@ -16,11 +16,11 @@
     "test:e2e:debug": "playwright test --debug"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^2.0.53",
-    "@ai-sdk/gateway": "^2.0.18",
-    "@ai-sdk/google": "^2.0.44",
-    "@ai-sdk/openai": "^2.0.77",
-    "ai": "^5.0.107",
+    "@ai-sdk/anthropic": "^3.0.0",
+    "@ai-sdk/gateway": "^3.0.0",
+    "@ai-sdk/google": "^3.0.0",
+    "@ai-sdk/openai": "^3.0.0",
+    "ai": "^6.0.0",
     "clsx": "^2.1.1",
     "convex": "^1.30.0",
     "framer-motion": "^11.2.0",

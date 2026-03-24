@@ -237,6 +237,26 @@ export function useMultiplayerGame({
     }
   }, [gameDetails?.game.status, onGameEnd])
 
+  // Clean up on tab close / navigate away — leave game so slot frees up
+  useEffect(() => {
+    if (!playerId) return
+
+    const handleBeforeUnload = () => {
+      // Use sendBeacon for reliable cleanup on tab close
+      navigator.sendBeacon?.(
+        `/api/leave-game?playerId=${playerId}`,
+        ""
+      )
+    }
+
+    window.addEventListener("beforeunload", handleBeforeUnload)
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload)
+      // Also leave on React unmount (navigation within app)
+      leaveGameMutation({ playerId }).catch(() => {})
+    }
+  }, [playerId, leaveGameMutation])
+
   return {
     playerId,
     isHost,

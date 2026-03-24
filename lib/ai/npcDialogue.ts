@@ -113,7 +113,6 @@ If there's danger, balance your personality with appropriate concern.`
       model: models.npcDialogue,
       prompt,
       temperature: aiConfig.temperature.npc,
-      maxOutputTokens: aiConfig.maxTokens.npc,
     })
 
     let fullResponse = ""
@@ -183,7 +182,6 @@ ${context.currentEvent === "shark_nearby" || context.currentEvent === "shark_att
       model: models.npcDialogue,
       prompt,
       temperature: aiConfig.temperature.npc,
-      maxOutputTokens: 100,
     })
 
     let greeting = ""

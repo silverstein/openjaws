@@ -5,6 +5,7 @@
  */
 
 import { audioLogger } from "@/lib/logger"
+import { SYNTH_RECIPES } from "./SynthSounds"
 
 export type SoundEffect =
   | "ocean_ambience"
@@ -137,21 +138,29 @@ export class AudioManager {
       try {
         const response = await fetch(url)
         if (!response.ok) {
-          audioLogger.warn(`Could not load ${url} - using silence`)
-          return
+          throw new Error(`HTTP ${response.status}`)
         }
         const arrayBuffer = await response.arrayBuffer()
         const audioBuffer = await this.audioContext!.decodeAudioData(arrayBuffer)
         this.buffers.set(key as SoundEffect, audioBuffer)
-        audioLogger.debug(`Loaded ${key}`)
-      } catch (error) {
-        audioLogger.warn(`Failed to load ${key}:`, error)
-        // Continue loading other sounds even if one fails
+        audioLogger.debug(`Loaded ${key} from file`)
+      } catch {
+        // Fallback to synthetic sound
+        const recipe = SYNTH_RECIPES[key]
+        if (recipe && this.audioContext) {
+          try {
+            const synthBuffer = recipe(this.audioContext, 0)
+            this.buffers.set(key as SoundEffect, synthBuffer)
+            audioLogger.debug(`Generated synth ${key}`)
+          } catch {
+            audioLogger.warn(`No sound available for ${key}`)
+          }
+        }
       }
     })
 
     await Promise.all(loadPromises)
-    audioLogger.info(`Preloaded ${this.buffers.size} sounds`)
+    audioLogger.info(`Preloaded ${this.buffers.size} sounds (file + synth)`)
   }
 
   /**
